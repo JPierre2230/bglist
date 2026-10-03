@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Add box pictures</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖼️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width: 980px; margin: 0 auto; padding: 22px 24px 60px; }
+  .howto { background: var(--tile); border-radius: 12px; padding: 16px 20px; box-shadow: 0 0 0 1px var(--line); margin-bottom: 18px; }
+  .howto ol { margin: 6px 0 0; padding-left: 20px; }
+  .howto li { margin: 3px 0; }
+  .howto kbd { background: var(--tile-sunk); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font: inherit; font-size: 13px; }
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--page); padding: 10px 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .progress { flex: 1; min-width: 200px; }
+  .progress .track { height: 8px; background: var(--pip-off); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+  .progress .fill { height: 100%; background: var(--felt); width: 0; transition: width .2s; }
+  .progress small { color: var(--ink-soft); }
+  .rows { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; background: var(--tile); border-radius: 11px; padding: 10px 12px; box-shadow: 0 0 0 1px var(--line); scroll-margin-top: 80px; }
+  .row.focus { box-shadow: 0 0 0 2px var(--felt); }
+  .thumb { width: 64px; height: 64px; border-radius: 7px; background: var(--tile-sunk); display: grid; place-items: center; overflow: hidden; grid-row: span 2; }
+  .thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .thumb .ph { width: 100%; font-size: 18px; box-shadow: none; border-radius: 7px; }
+  .name { font-weight: 700; line-height: 1.25; }
+  .name small { font-weight: 400; color: var(--ink-soft); margin-left: 6px; }
+  .open { white-space: nowrap; color: var(--ink); font-size: 14px; border: 1.5px solid var(--line); border-radius: 8px; padding: 5px 12px; text-decoration: none; }
+  .open:hover { border-color: var(--felt); }
+  .input-line { grid-column: 2 / 4; display: flex; gap: 6px; align-items: center; }
+  .input-line input { flex: 1; min-width: 0; border: 1.5px solid var(--line); background: var(--tile); border-radius: 8px; padding: 7px 10px; font-size: 14px; }
+  .input-line input:focus { border-color: var(--felt); outline: none; }
+  .input-line button { border: 0; background: var(--tile-sunk); border-radius: 8px; width: 34px; height: 34px; font-size: 18px; }
+  .msg { grid-column: 2 / 4; font-size: 13px; margin-top: -2px; }
+  .msg:empty { display: none; }
+  .msg.err { color: #b3261e; }
+  .msg.warn { color: #8a5a00; }
+  .msg.ok { color: var(--felt); }
+  .row.done .name::after { content: " ✓"; color: var(--felt); }
+  .save { background: var(--tile); border-radius: 12px; padding: 16px 20px; box-shadow: 0 0 0 1px var(--line); margin-top: 22px; }
+  .save h2 { margin: 0 0 6px; font-size: 18px; }
+  .save p { margin: 0 0 10px; color: var(--ink-soft); }
+  .back { color: var(--felt-ink); }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 52px minmax(0, 1fr); }
+    .thumb { width: 52px; height: 52px; }
+    .open { grid-column: 2; justify-self: start; }
+    .input-line, .msg { grid-column: 1 / 3; }
+    .thumb { grid-row: span 2; }
+  }
+</style>
+</head>
+<body>
+<header class="felt">
+  <div class="felt-inner">
+    <div class="title-row">
+      <h1 data-t="title">Add box pictures</h1>
+      <div class="header-tools"><button class="ghost" id="langBtn" type="button">中文</button></div>
+    </div>
+    <p class="sync-note"><a class="back" href="./" data-t="back">← Back to the shelf</a></p>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="howto">
+    <strong data-t="howTitle">How it works</strong>
+    <ol>
+      <li data-t="how1">Click <b>Open on BGG</b> next to a game. It opens in one shared tab, so you won't pile up tabs.</li>
+      <li data-t="how2">On the BGG page, right-click the box picture and choose <kbd>Copy image address</kbd> (on a phone, long-press it).</li>
+      <li data-t="how3">Come back here and paste into that game's box. Check the preview, then the next game is selected for you.</li>
+      <li data-t="how4">Your progress is saved in this browser as you go. When you're done (or want to stop for now), save the file at the bottom.</li>
+    </ol>
+  </section>
+
+  <div class="bar">
+    <div class="progress"><small id="progressText"></small><div class="track"><div class="fill" id="progressFill"></div></div></div>
+    <label class="switch"><input type="checkbox" id="onlyMissing" checked> <span data-t="onlyMissing">Only games without a picture</span></label>
+    <label class="switch"><input type="checkbox" id="withExp"> <span data-t="withExp">Include expansions</span></label>
+  </div>
+
+  <div class="rows" id="rows"></div>
+
+  <section class="save">
+    <h2 data-t="saveTitle">Save to your website</h2>
+    <p data-t="saveBody">Pictures you add here only show on this computer until you save them to GitHub. Download the file, then in your bglist repository open the data folder, choose Add file → Upload files, drop in images.json and click Commit changes. Your site shows the pictures a minute or two later.</p>
+    <div class="d-actions" style="margin-top:0">
+      <button class="btn" type="button" id="download" data-t="download">Download images.json</button>
+      <button class="btn light" type="button" id="copy" data-t="copy">Copy as text</button>
+      <span id="saveNote" style="color:var(--ink-soft);font-size:14px"></span>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const T = {
+  en: {
+    title: "Add box pictures", back: "← Back to the shelf", howTitle: "How it works",
+    how1: "Click <b>Open on BGG</b> next to a game. It opens in one shared tab, so you won't pile up tabs.",
+    how2: "On the BGG page, right-click the box picture and choose <kbd>Copy image address</kbd> (on a phone, long-press it).",
+    how3: "Come back here and paste into that game's box. Check the preview, then the next game is selected for you.",
+    how4: "Your progress is saved in this browser as you go. When you're done (or want to stop for now), save the file at the bottom.",
+    onlyMissing: "Only games without a picture", withExp: "Include expansions",
+    progress: "{n} of {total} games have a picture", open: "Open on BGG", ph: "Paste the image address here",
+    clear: "Remove picture", saveTitle: "Save to your website",
+    saveBody: "Pictures you add here only show on this computer until you save them to GitHub. Download the file, then in your bglist repository open the data folder, choose Add file → Upload files, drop in images.json and click Commit changes. Your site shows the pictures a minute or two later.",
+    download: "Download images.json", copy: "Copy as text", copied: "Copied. On GitHub, open data/images.json, click the pencil icon, replace everything with what you copied, and commit.",
+    unsaved: "{n} change(s) not saved to GitHub yet.", allSaved: "Everything here matches your website.",
+    errPage: "That's the address of a page, not the picture. Right-click the picture itself and choose “Copy image address”.",
+    errBad: "That doesn't look like a web address. Right-click the picture and choose “Copy image address”.",
+    warnOther: "This isn't a BGG picture link. It will work, but pictures from other sites sometimes disappear.",
+    errLoad: "This picture didn't load. Check that you copied the image address, not the page address.",
+    ok: "Looks good.", allDone: "Every game has a picture. Don't forget to save below.",
+  },
+  zh: {
+    title: "加入封面圖片", back: "← 回到桌遊清單", howTitle: "使用方式",
+    how1: "點遊戲旁的 <b>在 BGG 開啟</b>。所有遊戲會在同一個分頁開啟，不會開出一堆分頁。",
+    how2: "在 BGG 頁面上，對封面圖片按右鍵，選 <kbd>複製圖片網址</kbd>（手機請長按圖片）。",
+    how3: "回到這裡，貼到該遊戲的欄位。確認預覽圖正確後，會自動跳到下一款。",
+    how4: "進度會自動存在這個瀏覽器。完成後（或想先暫停時），用最下方的按鈕存檔。",
+    onlyMissing: "只顯示還沒有圖片的遊戲", withExp: "包含擴充",
+    progress: "{total} 款中已有 {n} 款有圖片", open: "在 BGG 開啟", ph: "在此貼上圖片網址",
+    clear: "移除圖片", saveTitle: "儲存到你的網站",
+    saveBody: "在這裡加入的圖片，存到 GitHub 之前只會顯示在這台電腦上。請下載檔案，然後在 bglist repository 中打開 data 資料夾，選 Add file → Upload files，放入 images.json 並按 Commit changes。一兩分鐘後網站就會顯示圖片。",
+    download: "下載 images.json", copy: "複製文字", copied: "已複製。到 GitHub 打開 data/images.json，點鉛筆圖示，把內容全部換成剛複製的文字，再 commit。",
+    unsaved: "有 {n} 項變更還沒存到 GitHub。", allSaved: "這裡的內容和網站一致。",
+    errPage: "這是網頁的網址，不是圖片的。請對圖片本身按右鍵，選「複製圖片網址」。",
+    errBad: "這看起來不是網址。請對圖片按右鍵，選「複製圖片網址」。",
+    warnOther: "這不是 BGG 的圖片連結。可以使用，但其他網站的圖片有時會失效。",
+    errLoad: "圖片無法載入。請確認複製的是圖片網址，而不是網頁網址。",
+    ok: "沒問題。", allDone: "每款遊戲都有圖片了。別忘了在下方存檔。",
+  },
+};
+let lang = localStorage.getItem("bglist.lang") || (/^zh/i.test(navigator.language) ? "zh" : "en");
+const t = (k, v = {}) => (T[lang][k] ?? T.en[k]).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? "");
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const DRAFT = "bglist.images.draft";
+
+let games = [], repo = {}, draft = {};
+const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
+const initials = n => n.replace(/^(the|a|an)\s+/i, "").split(/[\s:\-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const nameOf = g => (lang === "zh" && g.cjkName) ? g.cjkName : g.name;
+const current = id => (id in draft ? draft[id] : repo[id]) || "";
+// a game "has a picture" if you set one here, or the BGG sync already provides one
+const hasPic = g => !!(current(g.id) || g.image || g.thumb);
+
+function check(url) {
+  if (!url) return ["", ""];
+  if (!/^https?:\/\//i.test(url)) return ["err", t("errBad")];
+  if (/^https?:\/\/(www\.)?boardgamegeek\.com\//i.test(url)) return ["err", t("errPage")];
+  if (!/^https:\/\/cf\.geekdo-images\.com\//i.test(url)) return ["warn", t("warnOther")];
+  return ["ok", t("ok")];
+}
+
+function thumb(g) {
+  const mine = current(g.id);
+  const src = (mine && check(mine)[0] !== "err" ? mine : "") || g.thumb || g.image;
+  return src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+             : `<div class="ph" style="background:hsl(${hue(g.name)} 32% 40%)">${esc(initials(g.name))}</div>`;
+}
+
+function visible() {
+  const showExp = $("#withExp").checked, onlyMissing = $("#onlyMissing").checked;
+  return games.filter(g => (showExp || g.type !== "expansion") && (!onlyMissing || !hasPic(g) || $(`#r${g.id}`)?.classList.contains("focus")));
+}
+
+function render() {
+  document.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
+  document.querySelectorAll("[data-t]").forEach(el => el.innerHTML = t(el.dataset.t));
+  $("#langBtn").textContent = lang === "zh" ? "English" : "中文";
+  const list = visible();
+  $("#rows").innerHTML = list.map(g => {
+    const url = current(g.id), [kind, msg] = check(url);
+    return `<div class="row ${hasPic(g) ? "done" : ""}" id="r${g.id}" data-id="${g.id}">
+      <div class="thumb">${thumb(g)}</div>
+      <div class="name">${esc(nameOf(g))}${g.year ? `<small>${g.year}</small>` : ""}</div>
+      <a class="open" href="https://boardgamegeek.com/boardgame/${g.id}" target="bgg-picture-tab" rel="noopener">${t("open")} ↗</a>
+      <div class="input-line"><input type="url" inputmode="url" value="${esc(url)}" placeholder="${t("ph")}" aria-label="${esc(g.name)}">
+        <button type="button" title="${t("clear")}" aria-label="${t("clear")}" data-clear>×</button></div>
+      <div class="msg ${kind}">${url ? msg : ""}</div>
+    </div>`;
+  }).join("") || `<p style="text-align:center;color:var(--ink-soft);padding:30px">${t("allDone")}</p>`;
+  $("#rows").querySelectorAll(".thumb img").forEach(i => i.addEventListener("error", () => {
+    const row = i.closest(".row"); const m = row.querySelector(".msg");
+    m.className = "msg err"; m.textContent = t("errLoad");
+  }, { once: true }));
+  progress();
+}
+
+function progress() {
+  const pool = games.filter(g => $("#withExp").checked || g.type !== "expansion");
+  const n = pool.filter(hasPic).length;
+  $("#progressText").textContent = t("progress", { n, total: pool.length });
+  $("#progressFill").style.width = (pool.length ? n / pool.length * 100 : 0) + "%";
+  const changes = Object.keys(draft).filter(id => (draft[id] || "") !== (repo[id] || "")).length;
+  $("#saveNote").textContent = changes ? t("unsaved", { n: changes }) : t("allSaved");
+}
+
+function setUrl(id, url) {
+  draft[id] = url;
+  if ((repo[id] || "") === url) delete draft[id];
+  try { localStorage.setItem(DRAFT, JSON.stringify(draft)); } catch { /* storage blocked */ }
+}
+
+function updateRow(row) {
+  const g = games.find(x => x.id === +row.dataset.id);
+  const url = current(g.id), [kind, msg] = check(url);
+  row.querySelector(".thumb").innerHTML = thumb(g);
+  const img = row.querySelector(".thumb img");
+  if (img) img.addEventListener("error", () => { const m = row.querySelector(".msg"); m.className = "msg err"; m.textContent = t("errLoad"); }, { once: true });
+  const m = row.querySelector(".msg"); m.className = "msg " + kind; m.textContent = url ? msg : "";
+  row.classList.toggle("done", hasPic(g));
+  progress();
+}
+
+function focusNext(row) {
+  let next = row.nextElementSibling;
+  while (next && next.classList.contains("done")) next = next.nextElementSibling;
+  document.querySelectorAll(".row.focus").forEach(r => r.classList.remove("focus"));
+  if (next) {
+    next.classList.add("focus");
+    next.scrollIntoView({ block: "center", behavior: "smooth" });
+    next.querySelector("input").focus({ preventScroll: true });
+  }
+}
+
+function output() {
+  const images = {};
+  for (const g of games) { const u = current(g.id); if (u) images[g.id] = u; }
+  return JSON.stringify({ images }, null, 2);
+}
+
+function bind() {
+  const rows = $("#rows");
+  rows.addEventListener("focusin", e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    document.querySelectorAll(".row.focus").forEach(r => r !== row && r.classList.remove("focus"));
+    row.classList.add("focus");
+  });
+  rows.addEventListener("click", e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    if (e.target.closest("[data-clear]")) { setUrl(row.dataset.id, ""); row.querySelector("input").value = ""; updateRow(row); }
+    if (e.target.closest(".open")) { row.classList.add("focus"); }
+  });
+  rows.addEventListener("input", e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    setUrl(row.dataset.id, e.target.value.trim());
+    updateRow(row);
+  });
+  rows.addEventListener("paste", e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    setTimeout(() => {
+      const url = e.target.value.trim();
+      setUrl(row.dataset.id, url); updateRow(row);
+      if (check(url)[0] !== "err") setTimeout(() => focusNext(row), 700);
+    }, 0);
+  });
+  $("#onlyMissing").addEventListener("change", render);
+  $("#withExp").addEventListener("change", render);
+  $("#langBtn").addEventListener("click", () => { lang = lang === "zh" ? "en" : "zh"; localStorage.setItem("bglist.lang", lang); render(); });
+  $("#download").addEventListener("click", () => {
+    const a = Object.assign(document.createElement("a"), {
+      href: URL.createObjectURL(new Blob([output()], { type: "application/json" })), download: "images.json" });
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("#copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(output()); $("#saveNote").textContent = t("copied"); }
+    catch { prompt("Copy:", output()); }
+  });
+}
+
+async function getJSON(u) { try { const r = await fetch(u, { cache: "no-cache" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  const [g, im] = await Promise.all([getJSON("data/games.json"), getJSON("data/images.json")]);
+  games = (g?.games || []).slice().sort((a, b) => (a.type === b.type ? 0 : a.type === "base" ? -1 : 1) || a.name.localeCompare(b.name));
+  repo = Object.fromEntries(Object.entries(im?.images || {}).map(([k, v]) => [k, v]));
+  try { draft = JSON.parse(localStorage.getItem(DRAFT) || "{}"); } catch { draft = {}; }
+  // drop draft entries that GitHub already has
+  for (const k of Object.keys(draft)) if ((repo[k] || "") === draft[k]) delete draft[k];
+  bind(); render();
+  // jump straight to a game when opened as images.html#g123
+  const m = location.hash.match(/^#g(\d+)$/);
+  if (m) {
+    $("#onlyMissing").checked = false; if (games.find(x => x.id === +m[1])?.type === "expansion") $("#withExp").checked = true;
+    render(); const row = $(`#r${m[1]}`);
+    if (row) { row.classList.add("focus"); row.scrollIntoView({ block: "center" }); row.querySelector("input").focus({ preventScroll: true }); }
+  }
+})();
+})();
+</script>
+</body>
+</html>

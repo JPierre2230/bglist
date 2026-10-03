@@ -39,7 +39,7 @@ const T = {
     expansion: "Expansion", gamesPlayedWith: "{n} played with {name}",
     langDep: "Language dependence", langHint: "How much reading is needed during play, from BGG votes.",
     l1: "No text", l2: "Little text", l3: "Moderate text", l4: "Lots of text", l5: "Must read the language",
-    copies: "Copies",
+    copies: "Copies", addPic: "Add a picture", changePic: "Change picture", picsLink: "Add box pictures",
   },
   zh: {
     title: "{user} 的桌遊", titleDefault: "桌遊清單",
@@ -76,7 +76,7 @@ const T = {
     expansion: "擴充", gamesPlayedWith: "和 {name} 玩過 {n} 款",
     langDep: "語言依賴度", langHint: "遊戲中需要閱讀多少文字，依據 BGG 玩家投票。",
     l1: "無文字", l2: "少量文字", l3: "中等文字", l4: "大量文字", l5: "需讀懂原文",
-    copies: "份數",
+    copies: "份數", addPic: "加入圖片", changePic: "更換圖片", picsLink: "加入封面圖片",
   },
 };
 let lang = localStorage.getItem("bglist.lang") || (/^zh/i.test(navigator.language) ? "zh" : "en");
@@ -263,6 +263,7 @@ function renderStatic() {
   document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   $("#langBtn").textContent = lang === "zh" ? "English" : "中文";
+  $("#picsLink").textContent = t("picsLink");
   const title = DATA.username && DATA.source !== "sample" ? t("title", { user: DATA.username }) : t("titleDefault");
   $("#title").textContent = title; document.title = title;
   const when = fmtDate(DATA.generated);
@@ -448,6 +449,7 @@ function openGame(id, fromPick = false) {
       <div class="d-actions">
         ${fromPick ? `<button class="btn" type="button" data-again>${t("another")}</button>` : ""}
         <a href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" rel="noopener">${t("openBgg")}</a>
+        <a href="images.html#g${g.id}">${g.image || g.thumb ? t("changePic") : t("addPic")}</a>
       </div>
     </div>
   </div>`;
@@ -638,9 +640,14 @@ async function getJSON(url) {
 }
 async function boot() {
   readHash();
-  const [games, prof] = await Promise.all([getJSON("data/games.json"), getJSON("data/profiles.json")]);
+  const [games, prof, pics] = await Promise.all([getJSON("data/games.json"), getJSON("data/profiles.json"), getJSON("data/images.json")]);
   DATA = games || { games: [], plays: [] };
   DATA.plays ||= [];
+  // pictures added by hand with images.html take priority over the BGG sync
+  for (const g of DATA.games) {
+    const u = pics?.images?.[g.id];
+    if (u) { g.image = u; g.thumb = u; }
+  }
   byId = new Map(DATA.games.map(g => [g.id, g]));
   loadProfiles(prof);
   if (S.profile && !profiles.some(p => p.id === S.profile)) S.profile = "";
