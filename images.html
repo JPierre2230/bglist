@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Add box pictures</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖼️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a2257'/%3E%3Cpath d='M40 13v24a12 12 0 0 1-24 0' fill='none' stroke='%23ffc23d' stroke-width='9' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 <style>
   .wrap { max-width: 980px; margin: 0 auto; padding: 22px 24px 60px; }
   .howto { background: var(--tile); border-radius: 12px; padding: 16px 20px; box-shadow: 0 0 0 1px var(--line); margin-bottom: 18px; }
@@ -60,7 +60,7 @@
       <h1 data-t="title">Add box pictures</h1>
       <div class="header-tools"><button class="ghost" id="langBtn" type="button">中文</button></div>
     </div>
-    <p class="sync-note"><a class="back" href="./" data-t="back">← Back to the shelf</a></p>
+    <p class="sync-note"><a class="back" href="./" data-t="back">← Back to the library</a></p>
   </div>
 </header>
 
@@ -99,7 +99,7 @@
 "use strict";
 const T = {
   en: {
-    title: "Add box pictures", back: "← Back to the shelf", howTitle: "How it works",
+    title: "Add box pictures", back: "← Back to the library", howTitle: "How it works",
     how1: "Click <b>Open on BGG</b> next to a game. It opens in one shared tab, so you won't pile up tabs.",
     how2: "On the BGG page, right-click the box picture and choose <kbd>Copy image address</kbd> (on a phone, long-press it).",
     how3: "Come back here and paste into that game's box. Check the preview, then the next game is selected for you.",
@@ -115,10 +115,10 @@ const T = {
     warnOther: "This isn't a BGG picture link. It will work, but pictures from other sites sometimes disappear.",
     errLoad: "This picture didn't load. Check that you copied the image address, not the page address.",
     ok: "Looks good.", allDone: "Every game has a picture. Don't forget to save below.",
-    locked: "This page is only available in edit mode. Unlock edit mode on the shelf first.",
+    locked: "This page is only available in edit mode. Unlock edit mode on the library page first.",
   },
   zh: {
-    title: "加入封面圖片", back: "← 回到桌遊清單", howTitle: "使用方式",
+    title: "加入封面圖片", back: "← 回到桌遊收藏庫", howTitle: "使用方式",
     how1: "點遊戲旁的 <b>在 BGG 開啟</b>。所有遊戲會在同一個分頁開啟，不會開出一堆分頁。",
     how2: "在 BGG 頁面上，對封面圖片按右鍵，選 <kbd>複製圖片網址</kbd>（手機請長按圖片）。",
     how3: "回到這裡，貼到該遊戲的欄位。確認預覽圖正確後，會自動跳到下一款。",
@@ -134,7 +134,7 @@ const T = {
     warnOther: "這不是 BGG 的圖片連結。可以使用，但其他網站的圖片有時會失效。",
     errLoad: "圖片無法載入。請確認複製的是圖片網址，而不是網頁網址。",
     ok: "沒問題。", allDone: "每款遊戲都有圖片了。別忘了在下方存檔。",
-    locked: "這個頁面只在編輯模式下開放。請先在桌遊清單頁面解鎖編輯模式。",
+    locked: "這個頁面只在編輯模式下開放。請先在桌遊收藏庫頁面解鎖編輯模式。",
   },
 };
 let lang = localStorage.getItem("bglist.lang") || (/^zh/i.test(navigator.language) ? "zh" : "en");

@@ -5,7 +5,7 @@
 // ------------------------------------------------------------ text (English / 繁體中文)
 const T = {
   en: {
-    title: "{user}'s board games", titleDefault: "Board game shelf",
+    titleDefault: "Board Game Library",
     synced: "Updated from BoardGameGeek {when}", sample: "Showing sample data. Follow the README to sync your own BGG collection.",
     csv: "Imported from a BGG CSV export {when}. Add a BGG token to get box art and details.",
     searchPh: "Search by name", pick: "Random", filters: "Filters", done: "Done", sortBy: "Sort",
@@ -38,8 +38,8 @@ const T = {
     pConfirmDelete: "Remove {name} and their played list?",
     pNone: "No friends added yet.", newFriend: "New friend",
     expansion: "Expansion", gamesPlayedWith: "{n} played with {name}",
-    langDep: "Language dependence", langHint: "How much reading is needed during play, from BGG votes.",
-    l1: "No text", l2: "Little text", l3: "Moderate text", l4: "Lots of text", l5: "Must read the language",
+    langDep: "Language Requirement",
+    l1: "None", l2: "Minimal", l3: "Moderate", l4: "High", l5: "Essential",
     copies: "Copies", addPic: "Add a picture", changePic: "Change picture", picsLink: "Add box pictures",
     edit: "Edit", editing: "Editing", editTitle: "Edit mode", editIntro: "Enter the password to edit friends, played games and pictures.",
     pw: "Password", pw2: "Type it again", wrongPw: "That password isn't right.", unlock: "Unlock",
@@ -50,7 +50,7 @@ const T = {
     editOnTitle: "You're in edit mode", editOnBody: "Friend editing, played-with ticks and the BGG and picture links are showing. This browser stays unlocked until you stop editing.",
   },
   zh: {
-    title: "{user} 的桌遊", titleDefault: "桌遊清單",
+    titleDefault: "桌遊收藏庫",
     synced: "BoardGameGeek 資料更新於 {when}", sample: "目前顯示範例資料。請依照 README 同步你的 BGG 收藏。",
     csv: "已於 {when} 從 BGG CSV 匯入。加入 BGG token 即可取得封面與詳細資料。",
     searchPh: "搜尋遊戲名稱", pick: "隨機", filters: "篩選", done: "完成", sortBy: "排序",
@@ -83,8 +83,8 @@ const T = {
     pConfirmDelete: "要刪除 {name} 和他的遊玩清單嗎？",
     pNone: "還沒有新增朋友。", newFriend: "新朋友",
     expansion: "擴充", gamesPlayedWith: "和 {name} 玩過 {n} 款",
-    langDep: "語言依賴度", langHint: "遊戲中需要閱讀多少文字，依據 BGG 玩家投票。",
-    l1: "無文字", l2: "少量文字", l3: "中等文字", l4: "大量文字", l5: "需讀懂原文",
+    langDep: "語言需求",
+    l1: "無", l2: "少量", l3: "中等", l4: "高", l5: "必要",
     copies: "份數", addPic: "加入圖片", changePic: "更換圖片", picsLink: "加入封面圖片",
     edit: "編輯", editing: "編輯中", editTitle: "編輯模式", editIntro: "輸入密碼以編輯朋友、遊玩紀錄和圖片。",
     pw: "密碼", pw2: "再輸入一次", wrongPw: "密碼不正確。", unlock: "解鎖",
@@ -102,7 +102,7 @@ const t = (k, vars = {}) => (T[lang][k] ?? T.en[k] ?? k).replace(/\{(\w+)\}/g, (
 const COLORS = ["#d23f31", "#2b6cb0", "#e8b10a", "#3a8f4e", "#7b4fb0", "#e07a1f", "#2a2a2a", "#e8e4dc", "#d6589a", "#3fa3a8"];
 const TIME = [["t1", 0, 30], ["t2", 31, 60], ["t3", 61, 120], ["t4", 121, 9999]];
 const WEIGHT = [["w1", 0, 2], ["w2", 2, 3], ["w3", 3, 4], ["w4", 4, 9]];
-const SORTS = ["name", "rating", "my", "light", "heavy", "short", "long", "year"];
+const SORTS = ["name", "rating", "light", "heavy", "short", "long", "year"];
 const STORE = "bglist.profiles.v1";
 const FACET_PREVIEW = 10;
 
@@ -266,7 +266,7 @@ function allPlayerNames() {
 
 // ------------------------------------------------------------ filtering
 function matches(g, skip = "") {
-  if (!S.exp && g.type === "expansion") return false;
+  if (!(S.exp && editing) && g.type === "expansion") return false;
   if (S.q) {
     const hay = [g.name, ...(g.altNames || []), ...(g.designers || []), ...(g.mechanics || []), ...(g.categories || [])].join(" ").toLowerCase();
     if (!S.q.toLowerCase().split(/\s+/).every(w => hay.includes(w))) return false;
@@ -351,9 +351,8 @@ function renderStatic() {
   document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   $("#langBtn").textContent = lang === "zh" ? "English" : "中文";
-  $("#picsLink").textContent = t("picsLink");
   renderEditBtn();
-  const title = DATA.username && DATA.source !== "sample" ? t("title", { user: DATA.username }) : t("titleDefault");
+  const title = t("titleDefault");
   $("#title").textContent = title; document.title = title;
   const d = DATA.generated ? new Date(DATA.generated) : null;
   const monthYear = d && !isNaN(d) ? (lang === "zh" ? `${d.getFullYear()}/${d.getMonth() + 1}` : `${d.getMonth() + 1}/${d.getFullYear()}`) : "";
@@ -404,9 +403,8 @@ function renderFilters() {
     WEIGHT.map(([k]) => chip(t(k), S.weight.has(k), `data-f="weight" data-v="${k}"`)).join("") + `</div></section>`;
   // language dependence
   if (DATA.games.some(g => g.langDep)) {
-    const ln = n => DATA.games.filter(g => g.langDep === n && matches(g)).length;
     h += `<section class="fgroup"><h3>${t("langDep")}</h3><div class="chips">` +
-      [1, 2, 3, 4, 5].map(n => chip(`${t("l" + n)}<span class="n">${ln(n)}</span>`, S.ld.has(n), `data-f="ld" data-v="${n}"`)).join("") +
+      [1, 2, 3, 4, 5].map(n => chip(t("l" + n), S.ld.has(n), `data-f="ld" data-v="${n}"`)).join("") +
       `</div></section>`;
   }
   // categories & mechanics
@@ -415,13 +413,17 @@ function renderFilters() {
     if (!list.length) continue;
     const shown = ui[flag] ? list : list.slice(0, FACET_PREVIEW).concat(list.slice(FACET_PREVIEW).filter(([v]) => set.has(v)));
     h += `<section class="fgroup"><h3>${t(label)}</h3><div class="chips">` +
-      shown.map(([v, n]) => chip(`${esc(v)}<span class="n">${n}</span>`, set.has(v), `data-f="${skip}" data-v="${esc(v)}"`)).join("") + `</div>`;
+      shown.map(([v]) => chip(esc(v), set.has(v), `data-f="${skip}" data-v="${esc(v)}"`)).join("") + `</div>`;
     if (list.length > FACET_PREVIEW) h += `<button type="button" class="linkish" data-more="${flag}">${ui[flag] ? t("showLess") : t("showAll", { n: list.length })}</button>`;
     h += `</section>`;
   }
   // expansions
-  if (DATA.games.some(g => g.type === "expansion"))
-    h += `<section class="fgroup"><label class="switch"><input type="checkbox" id="expToggle" ${S.exp ? "checked" : ""}> ${t("includeExp")}</label></section>`;
+  if (editing) {
+    h += `<section class="fgroup edit-tools">`;
+    if (DATA.games.some(g => g.type === "expansion"))
+      h += `<label class="switch"><input type="checkbox" id="expToggle" ${S.exp ? "checked" : ""}> ${t("includeExp")}</label>`;
+    h += `<a class="side-link" href="images.html">🖼️ ${t("picsLink")}</a></section>`;
+  }
   $("#filterBody").innerHTML = h;
 }
 
@@ -451,7 +453,6 @@ function card(g) {
       ${sub ? `<div class="sub">${esc(sub)}</div>` : ""}
       <div class="facts">
         ${S.sort === "rating" && g.rating ? `<span class="hl" title="${t("bggRating")}">★ ${g.rating.toFixed(1)}</span>` : ""}
-        ${S.sort === "my" && g.myRating ? `<span class="hl" title="${t("myStar")}">★ ${g.myRating}</span>` : ""}
         ${S.sort === "year" && g.year ? `<span class="hl" title="${t("yr")}">${g.year}</span>` : ""}
         <span title="${t("players")}">${icons.players}${range(g.minPlayers, g.maxPlayers)}</span>
         ${lo || hi ? `<span title="${t("time")}" class="${S.sort === "short" || S.sort === "long" ? "hl" : ""}">${icons.time}${range(lo, hi)}′</span>` : ""}
@@ -462,17 +463,15 @@ function card(g) {
 }
 function render() {
   const list = filtered();
-  const base = DATA.games.filter(g => S.exp || g.type !== "expansion").length;
   const grid = $("#grid"), empty = $("#empty");
   if (!DATA.games.length) {
     grid.innerHTML = ""; empty.hidden = false;
     empty.innerHTML = `<h2>${t("noData")}</h2><p>${t("noDataBody")}</p>`;
-    $("#count").textContent = ""; return;
+    return;
   }
   grid.innerHTML = list.map(card).join("");
   empty.hidden = list.length > 0;
   if (!list.length) empty.innerHTML = `<h2>${t("noneTitle")}</h2><p>${t("noneBody")}</p><button class="btn" type="button" data-clear>${t("clear")}</button>`;
-  $("#count").innerHTML = list.length === base ? t("countAll", { n: list.length }) : t("count", { n: list.length, total: base });
   const chips = activeFilterChips();
   $("#activeChips").innerHTML = chips.map(([label, f, v]) =>
     `<button type="button" class="chip" aria-pressed="true" data-rm="${f}" data-v="${esc(v)}">${label}</button>`).join("") +
