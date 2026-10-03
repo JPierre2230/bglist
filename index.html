@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Board game shelf</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="felt">
+  <div class="felt-inner">
+    <div class="title-row">
+      <h1 id="title">Board game shelf</h1>
+      <div class="header-tools">
+        <button class="ghost" id="langBtn" type="button" aria-label="Switch language">中文</button>
+      </div>
+    </div>
+    <p class="sync-note" id="syncNote"></p>
+
+    <div class="profile-row" id="profileRow" role="group" aria-label="Friends"></div>
+
+    <div class="search-row">
+      <label class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+        <input id="q" type="search" autocomplete="off" data-i18n-ph="searchPh" placeholder="Search by name, designer, mechanic…">
+      </label>
+      <button class="pick" id="pickBtn" type="button" data-i18n="pick">Pick one for us</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="filters" id="filters" aria-label="Filters">
+    <div class="sheet-head">
+      <strong data-i18n="filters">Filters</strong>
+      <button class="ghost dark" id="closeFilters" type="button" data-i18n="done">Done</button>
+    </div>
+    <div id="filterBody"></div>
+  </aside>
+
+  <main>
+    <div class="toolbar">
+      <p id="count" aria-live="polite"></p>
+      <div class="toolbar-right">
+        <button class="filters-toggle" id="openFilters" type="button"><span data-i18n="filters">Filters</span> <span id="filterBadge"></span></button>
+        <label class="sort"><span data-i18n="sortBy">Sort</span>
+          <select id="sort"></select>
+        </label>
+      </div>
+    </div>
+    <div id="activeChips" class="active-chips"></div>
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="empty" hidden></div>
+  </main>
+</div>
+
+<footer>
+  <a href="https://boardgamegeek.com" target="_blank" rel="noopener" class="bgg-credit">Powered by BoardGameGeek</a>
+</footer>
+
+<dialog id="gameDialog" class="dialog"><div id="gameBody"></div></dialog>
+<dialog id="profileDialog" class="dialog narrow"><div id="profileBody"></div></dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
