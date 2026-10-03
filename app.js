@@ -8,7 +8,7 @@ const T = {
     title: "{user}'s board games", titleDefault: "Board game shelf",
     synced: "Updated from BoardGameGeek {when}", sample: "Showing sample data. Follow the README to sync your own BGG collection.",
     csv: "Imported from a BGG CSV export {when}. Add a BGG token to get box art and details.",
-    searchPh: "Search by name, designer, mechanic…", pick: "Pick one for us", filters: "Filters", done: "Done", sortBy: "Sort",
+    searchPh: "Search by name", pick: "Random", filters: "Filters", done: "Done", sortBy: "Sort",
     everyone: "Everyone", addFriend: "Add friend", editFriends: "Edit friends",
     all: "All", played: "Played", unplayed: "Not played yet",
     players: "Number of players", can: "Supports", rec: "Recommended", best: "Best",
@@ -20,7 +20,8 @@ const T = {
     noneTitle: "No games match these filters", noneBody: "Try removing a filter or two.",
     noData: "No collection found", noDataBody: "Run the BGG sync (see README) to create data/games.json.",
     s_name: "Name", s_rating: "BGG rating", s_my: "My rating", s_light: "Lightest first", s_heavy: "Heaviest first",
-    s_short: "Shortest first", s_year: "Newest", s_plays: "Most played", s_added: "Recently added",
+    s_short: "Shortest first", s_long: "Longest first", s_year: "Release date",
+    updated: "Updated – {when}", myStar: "My rating",
     w1: "Light", w2: "Medium-light", w3: "Medium-heavy", w4: "Heavy",
     t1: "Up to 30 min", t2: "30–60 min", t3: "1–2 hours", t4: "Over 2 hours",
     min: "min", pl: "players", yr: "Published", age: "Age", bggRating: "BGG rating", rank: "BGG rank",
@@ -52,7 +53,7 @@ const T = {
     title: "{user} 的桌遊", titleDefault: "桌遊清單",
     synced: "BoardGameGeek 資料更新於 {when}", sample: "目前顯示範例資料。請依照 README 同步你的 BGG 收藏。",
     csv: "已於 {when} 從 BGG CSV 匯入。加入 BGG token 即可取得封面與詳細資料。",
-    searchPh: "搜尋名稱、設計師、機制…", pick: "幫我們選一款", filters: "篩選", done: "完成", sortBy: "排序",
+    searchPh: "搜尋遊戲名稱", pick: "隨機", filters: "篩選", done: "完成", sortBy: "排序",
     everyone: "全部", addFriend: "新增朋友", editFriends: "編輯朋友",
     all: "全部", played: "玩過", unplayed: "還沒玩過",
     players: "遊戲人數", can: "可玩", rec: "推薦", best: "最佳",
@@ -64,7 +65,8 @@ const T = {
     noneTitle: "沒有符合條件的遊戲", noneBody: "試著移除一兩個篩選條件。",
     noData: "找不到收藏資料", noDataBody: "請先執行 BGG 同步（見 README）以產生 data/games.json。",
     s_name: "名稱", s_rating: "BGG 評分", s_my: "我的評分", s_light: "由輕到重", s_heavy: "由重到輕",
-    s_short: "由短到長", s_year: "最新出版", s_plays: "最常玩", s_added: "最近加入",
+    s_short: "由短到長", s_long: "由長到短", s_year: "出版年份",
+    updated: "更新於 {when}", myStar: "我的評分",
     w1: "輕度", w2: "中輕度", w3: "中重度", w4: "重度",
     t1: "30 分鐘內", t2: "30–60 分鐘", t3: "1–2 小時", t4: "2 小時以上",
     min: "分鐘", pl: "人", yr: "出版年份", age: "年齡", bggRating: "BGG 評分", rank: "BGG 排名",
@@ -100,7 +102,7 @@ const t = (k, vars = {}) => (T[lang][k] ?? T.en[k] ?? k).replace(/\{(\w+)\}/g, (
 const COLORS = ["#d23f31", "#2b6cb0", "#e8b10a", "#3a8f4e", "#7b4fb0", "#e07a1f", "#2a2a2a", "#e8e4dc", "#d6589a", "#3fa3a8"];
 const TIME = [["t1", 0, 30], ["t2", 31, 60], ["t3", 61, 120], ["t4", 121, 9999]];
 const WEIGHT = [["w1", 0, 2], ["w2", 2, 3], ["w3", 3, 4], ["w4", 4, 9]];
-const SORTS = ["name", "rating", "my", "light", "heavy", "short", "year", "plays", "added"];
+const SORTS = ["name", "rating", "my", "light", "heavy", "short", "long", "year"];
 const STORE = "bglist.profiles.v1";
 const FACET_PREVIEW = 10;
 
@@ -305,6 +307,7 @@ const sorters = {
   light: (a, b) => (a.weight || 9) - (b.weight || 9),
   heavy: (a, b) => (b.weight || 0) - (a.weight || 0),
   short: (a, b) => (timeOf(a)[1] || 9999) - (timeOf(b)[1] || 9999),
+  long: (a, b) => (timeOf(b)[1] || 0) - (timeOf(a)[1] || 0),
   year: (a, b) => (b.year || 0) - (a.year || 0),
   plays: (a, b) => (b.numPlays || 0) - (a.numPlays || 0),
   added: (a, b) => String(b.added || "").localeCompare(String(a.added || "")),
@@ -352,8 +355,9 @@ function renderStatic() {
   renderEditBtn();
   const title = DATA.username && DATA.source !== "sample" ? t("title", { user: DATA.username }) : t("titleDefault");
   $("#title").textContent = title; document.title = title;
-  const when = fmtDate(DATA.generated);
-  $("#syncNote").textContent = DATA.source === "sample" ? t("sample") : DATA.source === "csv" ? t("csv", { when }) : DATA.generated ? t("synced", { when }) : "";
+  const d = DATA.generated ? new Date(DATA.generated) : null;
+  const monthYear = d && !isNaN(d) ? (lang === "zh" ? `${d.getFullYear()}/${d.getMonth() + 1}` : `${d.getMonth() + 1}/${d.getFullYear()}`) : "";
+  $("#syncNote").textContent = DATA.source === "sample" ? t("sample") : monthYear ? t("updated", { when: monthYear }) : "";
   $("#sort").innerHTML = SORTS.map(k => `<option value="${k}" ${S.sort === k ? "selected" : ""}>${t("s_" + k)}</option>`).join("");
 }
 
@@ -446,8 +450,11 @@ function card(g) {
       <h2>${esc(displayName(g))}</h2>
       ${sub ? `<div class="sub">${esc(sub)}</div>` : ""}
       <div class="facts">
+        ${S.sort === "rating" && g.rating ? `<span class="hl" title="${t("bggRating")}">★ ${g.rating.toFixed(1)}</span>` : ""}
+        ${S.sort === "my" && g.myRating ? `<span class="hl" title="${t("myStar")}">★ ${g.myRating}</span>` : ""}
+        ${S.sort === "year" && g.year ? `<span class="hl" title="${t("yr")}">${g.year}</span>` : ""}
         <span title="${t("players")}">${icons.players}${range(g.minPlayers, g.maxPlayers)}</span>
-        ${lo || hi ? `<span title="${t("time")}">${icons.time}${range(lo, hi)}′</span>` : ""}
+        ${lo || hi ? `<span title="${t("time")}" class="${S.sort === "short" || S.sort === "long" ? "hl" : ""}">${icons.time}${range(lo, hi)}′</span>` : ""}
         ${g.weight ? `<span title="${t("weight")}: ${weightLabel(g.weight)} (${g.weight.toFixed(1)})">${pips(g.weight)}</span>` : ""}
       </div>
     </div>

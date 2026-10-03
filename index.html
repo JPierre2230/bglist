@@ -21,12 +21,11 @@
       </div>
       <label class="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
-        <input id="q" type="search" autocomplete="off" data-i18n-ph="searchPh" placeholder="Search by name, designer, mechanic…">
+        <input id="q" type="search" autocomplete="off" data-i18n-ph="searchPh" placeholder="Search by name">
       </label>
-      <button class="pick" id="pickBtn" type="button"><span aria-hidden="true">🎲</span> <span data-i18n="pick">Pick one for us</span></button>
+      <button class="pick" id="pickBtn" type="button"><span aria-hidden="true">🎲</span> <span data-i18n="pick">Random</span></button>
       <div class="header-tools">
         <button class="icon-btn" id="langBtn" type="button" aria-label="Switch language">中文</button>
-        <button class="icon-btn" id="editBtn" type="button" aria-label="Edit mode"></button>
       </div>
     </div>
     <div class="profile-row" id="profileRow" role="group" aria-label="Friends"></div>
@@ -62,6 +61,8 @@
   <span class="edit-only"><a href="images.html" class="bgg-credit" id="picsLink">Add box pictures</a>
   <span class="bgg-credit" aria-hidden="true"> · </span></span>
   <a href="https://boardgamegeek.com" target="_blank" rel="noopener" class="bgg-credit">Powered by BoardGameGeek</a>
+  <span class="bgg-credit" aria-hidden="true"> · </span>
+  <button class="footer-edit" id="editBtn" type="button"></button>
 </footer>
 
 <dialog id="gameDialog" class="dialog"><div id="gameBody"></div></dialog>

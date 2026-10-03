@@ -68,7 +68,7 @@ h1 { margin: 0; font-size: 22px; line-height: 1.15; font-weight: 800; letter-spa
 .sync-note { margin: 1px 0 0; color: var(--head-soft); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sync-note a { color: inherit; }
 .search {
-  flex: 1; min-width: 160px; display: flex; align-items: center; gap: 8px;
+  flex: 0 1 280px; margin-left: auto; min-width: 160px; display: flex; align-items: center; gap: 8px;
   background: rgba(255,255,255,.12); border: 1.5px solid rgba(255,255,255,.18);
   border-radius: 10px; padding: 0 12px; min-height: 40px; color: var(--head-ink);
 }
@@ -170,6 +170,8 @@ main { min-width: 0; }
 .facts { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; align-items: center; }
 .facts span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 .facts svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+.facts .hl { background: var(--accent); color: var(--accent-ink); font-weight: 700; padding: 0 8px 0 7px; border-radius: 999px; line-height: 1.6; }
+.facts .hl svg { stroke: currentColor; }
 .pips { display: inline-flex; gap: 2px; }
 .pips i { width: 6px; height: 6px; border-radius: 2px; background: var(--pip-off); display: block; }
 .pips i.on { background: var(--pip); }
@@ -188,6 +190,9 @@ main { min-width: 0; }
 
 footer { text-align: center; padding: 6px 0 30px; }
 .bgg-credit { color: var(--ink-soft); font-size: 13px; }
+.footer-edit { border: 0; background: none; padding: 0; color: var(--ink-soft); font-size: 13px; display: inline-flex; align-items: center; gap: 4px; opacity: .7; }
+.footer-edit:hover { opacity: 1; text-decoration: underline; }
+.footer-edit svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
 
 /* ---------- dialogs ---------- */
 .dialog { border: 0; padding: 0; border-radius: 16px; width: min(880px, calc(100vw - 24px)); max-height: calc(100vh - 32px); background: var(--tile); color: var(--ink); box-shadow: 0 24px 60px rgba(0,0,0,.4); }
@@ -252,7 +257,7 @@ footer { text-align: center; padding: 6px 0 30px; }
   .top-row { flex-wrap: wrap; gap: 10px; }
   .brand { flex: 1 1 0; min-width: 0; order: 1; }
   .header-tools { order: 2; }
-  .search { order: 3; flex-basis: 100%; }
+  .search { order: 3; flex: 1 1 100%; margin-left: 0; }
   .pick { order: 4; flex: 1; }
   .layout { grid-template-columns: 1fr; padding: 12px 12px 30px; }
   .top-inner, .felt-inner { padding: 12px 12px 10px; }
