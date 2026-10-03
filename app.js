@@ -40,6 +40,13 @@ const T = {
     langDep: "Language dependence", langHint: "How much reading is needed during play, from BGG votes.",
     l1: "No text", l2: "Little text", l3: "Moderate text", l4: "Lots of text", l5: "Must read the language",
     copies: "Copies", addPic: "Add a picture", changePic: "Change picture", picsLink: "Add box pictures",
+    edit: "Edit", editing: "Editing", editTitle: "Edit mode", editIntro: "Enter the password to edit friends, played games and pictures.",
+    pw: "Password", pw2: "Type it again", wrongPw: "That password isn't right.", unlock: "Unlock",
+    setTitle: "Create an edit password", setIntro: "Choose a password. The editing options on this site only appear after it's entered.",
+    mismatch: "The two passwords don't match.", tooShort: "Use at least 4 characters.", setBtn: "Create password",
+    savedTitle: "One more step", savedBody: "You're in edit mode in this browser. To make the password work on every device, download config.json and upload it into the data folder of your repository (Add file → Upload files → Commit changes).",
+    dlConfig: "Download config.json", stopEdit: "Stop editing", changePw: "Change password", close: "Close",
+    editOnTitle: "You're in edit mode", editOnBody: "Friend editing, played-with ticks and the BGG and picture links are showing. This browser stays unlocked until you stop editing.",
   },
   zh: {
     title: "{user} 的桌遊", titleDefault: "桌遊清單",
@@ -77,6 +84,13 @@ const T = {
     langDep: "語言依賴度", langHint: "遊戲中需要閱讀多少文字，依據 BGG 玩家投票。",
     l1: "無文字", l2: "少量文字", l3: "中等文字", l4: "大量文字", l5: "需讀懂原文",
     copies: "份數", addPic: "加入圖片", changePic: "更換圖片", picsLink: "加入封面圖片",
+    edit: "編輯", editing: "編輯中", editTitle: "編輯模式", editIntro: "輸入密碼以編輯朋友、遊玩紀錄和圖片。",
+    pw: "密碼", pw2: "再輸入一次", wrongPw: "密碼不正確。", unlock: "解鎖",
+    setTitle: "建立編輯密碼", setIntro: "設定一組密碼。輸入密碼後，網站上的編輯選項才會出現。",
+    mismatch: "兩次輸入的密碼不一樣。", tooShort: "請至少使用 4 個字元。", setBtn: "建立密碼",
+    savedTitle: "還差一步", savedBody: "這個瀏覽器已進入編輯模式。若要讓密碼在所有裝置生效，請下載 config.json，並上傳到 repository 的 data 資料夾（Add file → Upload files → Commit changes）。",
+    dlConfig: "下載 config.json", stopEdit: "結束編輯", changePw: "更改密碼", close: "關閉",
+    editOnTitle: "目前為編輯模式", editOnBody: "已顯示朋友編輯、遊玩勾選，以及 BGG 和圖片連結。在你結束編輯之前，這個瀏覽器會保持解鎖。",
   },
 };
 let lang = localStorage.getItem("bglist.lang") || (/^zh/i.test(navigator.language) ? "zh" : "en");
@@ -98,6 +112,77 @@ const icons = {
   players: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.2c2.4.1 4.1 1.7 4.6 4.8"/></svg>',
   time: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
 };
+
+// ------------------------------------------------------------ edit mode
+// GitHub Pages has no server, so this only hides the editing tools from visitors.
+// Visitors can never change your real data either way: that lives in your GitHub repository.
+const EDIT_KEY = "bglist.edit";
+let editing = false, CONFIG = {};
+async function sha(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("bglist:" + text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function setEditing(on, hash = "") {
+  editing = on;
+  try { on ? localStorage.setItem(EDIT_KEY, hash) : localStorage.removeItem(EDIT_KEY); } catch { /* ignore */ }
+  document.body.classList.toggle("editing", on);
+  renderEditBtn();
+}
+function renderEditBtn() {
+  const lock = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0' + (editing ? '' : 'v3') + '"/></svg>';
+  const b = $("#editBtn");
+  b.innerHTML = lock + (editing ? t("editing") : t("edit"));
+  b.classList.toggle("on", editing);
+}
+function openEdit(view) {
+  const has = !!CONFIG.editPasswordHash;
+  view ||= editing ? "on" : has ? "unlock" : "set";
+  let h = `<button class="d-close" type="button" aria-label="${t("close")}" data-close>×</button><form class="p-body" method="dialog" data-view="${view}">`;
+  if (view === "unlock") h += `<h2>${t("editTitle")}</h2><p>${t("editIntro")}</p>
+      <label class="field"><small>${t("pw")}</small><input type="password" name="pw" autocomplete="current-password" required></label>
+      <p class="err" hidden></p><div class="p-foot"><span style="flex:1"></span><button class="btn" type="submit">${t("unlock")}</button></div>`;
+  if (view === "set") h += `<h2>${t("setTitle")}</h2><p>${t("setIntro")}</p>
+      <label class="field"><small>${t("pw")}</small><input type="password" name="pw" autocomplete="new-password" required></label>
+      <label class="field"><small>${t("pw2")}</small><input type="password" name="pw2" autocomplete="new-password" required></label>
+      <p class="err" hidden></p><div class="p-foot"><span style="flex:1"></span><button class="btn" type="submit">${t("setBtn")}</button></div>`;
+  if (view === "saved") h += `<h2>${t("savedTitle")}</h2><p>${t("savedBody")}</p>
+      <div class="p-foot"><button class="btn" type="button" data-dlconfig>${t("dlConfig")}</button><span style="flex:1"></span><button class="btn light" type="button" data-close>${t("close")}</button></div>`;
+  if (view === "on") h += `<h2>${t("editOnTitle")}</h2><p>${t("editOnBody")}</p>
+      <div class="p-foot"><button class="btn" type="button" data-stop>${t("stopEdit")}</button><button class="btn light" type="button" data-changepw>${t("changePw")}</button><span style="flex:1"></span><button class="btn light" type="button" data-close>${t("close")}</button></div>`;
+  $("#editBody").innerHTML = h + "</form>";
+  const d = $("#editDialog"); if (!d.open) d.showModal();
+  d.querySelector("input")?.focus();
+}
+function editEvents() {
+  const d = $("#editDialog");
+  d.addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target, err = f.querySelector(".err"), show = m => { err.textContent = m; err.hidden = false; };
+    const pw = f.pw.value;
+    if (f.dataset.view === "unlock") {
+      const h = await sha(pw);
+      if (h !== CONFIG.editPasswordHash) return show(t("wrongPw"));
+      setEditing(true, h); d.close(); update();
+    } else {
+      if (pw.length < 4) return show(t("tooShort"));
+      if (pw !== f.pw2.value) return show(t("mismatch"));
+      const h = await sha(pw);
+      CONFIG = { ...CONFIG, editPasswordHash: h };
+      setEditing(true, h); update(); openEdit("saved");
+    }
+  });
+  d.addEventListener("click", e => {
+    if (e.target === d || e.target.closest("[data-close]")) return d.close();
+    if (e.target.closest("[data-stop]")) { setEditing(false); d.close(); update(); }
+    if (e.target.closest("[data-changepw]")) openEdit("set");
+    if (e.target.closest("[data-dlconfig]")) {
+      const blob = new Blob([JSON.stringify(CONFIG, null, 2)], { type: "application/json" });
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "config.json" });
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+  });
+  $("#editBtn").addEventListener("click", () => openEdit());
+}
 
 // ------------------------------------------------------------ state
 let DATA = { games: [], plays: [] };
@@ -264,6 +349,7 @@ function renderStatic() {
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   $("#langBtn").textContent = lang === "zh" ? "English" : "中文";
   $("#picsLink").textContent = t("picsLink");
+  renderEditBtn();
   const title = DATA.username && DATA.source !== "sample" ? t("title", { user: DATA.username }) : t("titleDefault");
   $("#title").textContent = title; document.title = title;
   const when = fmtDate(DATA.generated);
@@ -273,9 +359,10 @@ function renderStatic() {
 
 function renderProfiles() {
   const row = $("#profileRow");
+  if (!profiles.length && !editing) { row.innerHTML = ""; return; }
   let h = `<button class="token everyone" type="button" aria-pressed="${!S.profile}" data-prof="">${meeple("currentColor", "none")}${t("everyone")}</button>`;
   for (const p of profiles) h += `<button class="token" type="button" aria-pressed="${S.profile === p.id}" data-prof="${esc(p.id)}">${meeple(p.color)}${esc(p.name)}</button>`;
-  h += `<button class="token add" type="button" id="editProfiles">${profiles.length ? t("editFriends") : "+ " + t("addFriend")}</button>`;
+  if (editing) h += `<button class="token add" type="button" id="editProfiles">${profiles.length ? t("editFriends") : "+ " + t("addFriend")}</button>`;
   if (S.profile) {
     h += `<span class="profile-mode" role="group">` + ["all", "played", "unplayed"].map(k =>
       `<button type="button" aria-pressed="${S.pfilter === k}" data-pf="${k}">${t(k)}</button>`).join("") + `</span>`;
@@ -304,7 +391,7 @@ function renderFilters() {
   for (let n = 1; n <= 8; n++) h += chip(n === 8 ? "8+" : n, S.players.has(n), `data-f="players" data-v="${n}"`, "chip num");
   h += `</div><div class="seg" role="group">` + ["can", "rec", "best"].map(k =>
     `<button type="button" aria-pressed="${S.pmode === k}" data-pm="${k}">${t(k)}</button>`).join("") +
-    `</div><p class="hint">${t("pHint")}</p></section>`;
+    `</div></section>`;
   // time
   h += `<section class="fgroup"><h3>${t("time")}</h3><div class="chips">` +
     TIME.map(([k]) => chip(t(k), S.time.has(k), `data-f="time" data-v="${k}"`)).join("") + `</div></section>`;
@@ -316,7 +403,7 @@ function renderFilters() {
     const ln = n => DATA.games.filter(g => g.langDep === n && matches(g)).length;
     h += `<section class="fgroup"><h3>${t("langDep")}</h3><div class="chips">` +
       [1, 2, 3, 4, 5].map(n => chip(`${t("l" + n)}<span class="n">${ln(n)}</span>`, S.ld.has(n), `data-f="ld" data-v="${n}"`)).join("") +
-      `</div><p class="hint">${t("langHint")}</p></section>`;
+      `</div></section>`;
   }
   // categories & mechanics
   for (const [key, skip, set, flag, label] of [["categories", "cats", S.cats, "showAllCats", "categories"], ["mechanics", "mechs", S.mechs, "showAllMechs", "mechanics"]]) {
@@ -360,7 +447,7 @@ function card(g) {
       ${sub ? `<div class="sub">${esc(sub)}</div>` : ""}
       <div class="facts">
         <span title="${t("players")}">${icons.players}${range(g.minPlayers, g.maxPlayers)}</span>
-        <span title="${t("time")}">${icons.time}${range(lo, hi)}′</span>
+        ${lo || hi ? `<span title="${t("time")}">${icons.time}${range(lo, hi)}′</span>` : ""}
         ${g.weight ? `<span title="${t("weight")}: ${weightLabel(g.weight)} (${g.weight.toFixed(1)})">${pips(g.weight)}</span>` : ""}
       </div>
     </div>
@@ -386,8 +473,19 @@ function render() {
   const nf = chips.length - (S.q ? 1 : 0);
   $("#filterBadge").textContent = nf || "";
   grid.querySelectorAll("img[data-ph]").forEach(i => i.addEventListener("error", onImgError, { once: true }));
+  grid.querySelectorAll(".card").forEach(c => masonry.observe(c));
   $("#pickBtn").disabled = !list.length;
 }
+// Masonry: every card spans as many 4px grid rows as its own height needs,
+// so tall boxes, wide boxes and long names each get a card that fits them.
+const ROW = 4;
+const masonry = new ResizeObserver(entries => {
+  for (const e of entries) {
+    const card = e.target;
+    const gap = parseFloat(getComputedStyle(card).marginBottom) || 0;
+    card.style.gridRowEnd = "span " + Math.ceil((card.getBoundingClientRect().height + gap) / ROW);
+  }
+});
 function onImgError(e) {
   const g = byId.get(+e.target.dataset.ph);
   if (g) e.target.outerHTML = placeholder(g);
@@ -411,7 +509,11 @@ function openGame(id, fromPick = false) {
   const best = g.bestPlayers?.length ? g.bestPlayers.join(", ") : "";
 
   let played = "";
-  if (profiles.length) {
+  if (!editing) {
+    const who = profiles.filter(p => playedWith(p.id, g.id));
+    if (who.length) played = `<h3>${t("playedWith")}</h3><div class="played-chips">` +
+      who.map(p => `<span>${meeple(p.color)}${esc(p.name)}</span>`).join("") + `</div>`;
+  } else if (profiles.length) {
     played = `<h3>${t("playedWith")}</h3><div class="played-list">` + profiles.map(p => {
       const e = playedWith(p.id, g.id);
       const logged = e?.count ? t("loggedOnBgg", { n: e.count, date: fmtDate(e.last) }) : (p.bggNames.length ? t("notLogged") : "");
@@ -448,8 +550,8 @@ function openGame(id, fromPick = false) {
       ${bases.length ? `<h3>${t("baseGame")}</h3><div class="minis">${bases.map(mini).join("")}</div>` : ""}
       <div class="d-actions">
         ${fromPick ? `<button class="btn" type="button" data-again>${t("another")}</button>` : ""}
-        <a href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" rel="noopener">${t("openBgg")}</a>
-        <a href="images.html#g${g.id}">${g.image || g.thumb ? t("changePic") : t("addPic")}</a>
+        ${editing ? `<a href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" rel="noopener">${t("openBgg")}</a>
+        <a href="images.html#g${g.id}">${g.image || g.thumb ? t("changePic") : t("addPic")}</a>` : ""}
       </div>
     </div>
   </div>`;
@@ -569,7 +671,12 @@ function bind() {
     const b = e.target.closest("button"); if (!b) return;
     if (b.id === "editProfiles") { if (!profiles.length) { profiles.push({ id: "p" + Date.now().toString(36), name: t("newFriend"), color: COLORS[0], bggNames: [], played: [] }); saveProfiles(); update(); } openProfiles(); return; }
     if (b.dataset.pf) { S.pfilter = b.dataset.pf; update(); return; }
-    if ("prof" in b.dataset) { S.profile = b.dataset.prof; if (!S.profile) S.pfilter = "all"; update(); }
+    if ("prof" in b.dataset) {
+      const changed = S.profile !== b.dataset.prof;
+      S.profile = b.dataset.prof;
+      S.pfilter = !S.profile ? "all" : changed ? "played" : S.pfilter;
+      update();
+    }
   });
 
   $("#filterBody").addEventListener("click", e => {
@@ -640,7 +747,13 @@ async function getJSON(url) {
 }
 async function boot() {
   readHash();
-  const [games, prof, pics] = await Promise.all([getJSON("data/games.json"), getJSON("data/profiles.json"), getJSON("data/images.json")]);
+  const [games, prof, pics, conf] = await Promise.all([getJSON("data/games.json"), getJSON("data/profiles.json"), getJSON("data/images.json"), getJSON("data/config.json")]);
+  CONFIG = conf || {};
+  let saved = ""; try { saved = localStorage.getItem(EDIT_KEY) || ""; } catch { /* ignore */ }
+  // a password created in this browser but not uploaded yet still counts here
+  if (!CONFIG.editPasswordHash && saved) CONFIG.editPasswordHash = saved;
+  editing = !!saved && saved === CONFIG.editPasswordHash;
+  document.body.classList.toggle("editing", editing);
   DATA = games || { games: [], plays: [] };
   DATA.plays ||= [];
   // pictures added by hand with images.html take priority over the BGG sync
@@ -652,7 +765,7 @@ async function boot() {
   loadProfiles(prof);
   if (S.profile && !profiles.some(p => p.id === S.profile)) S.profile = "";
   $("#q").value = S.q;
-  renderStatic(); bind(); update();
+  renderStatic(); bind(); editEvents(); update();
 }
 boot();
 })();

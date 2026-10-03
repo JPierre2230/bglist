@@ -115,6 +115,7 @@ const T = {
     warnOther: "This isn't a BGG picture link. It will work, but pictures from other sites sometimes disappear.",
     errLoad: "This picture didn't load. Check that you copied the image address, not the page address.",
     ok: "Looks good.", allDone: "Every game has a picture. Don't forget to save below.",
+    locked: "This page is only available in edit mode. Unlock edit mode on the shelf first.",
   },
   zh: {
     title: "加入封面圖片", back: "← 回到桌遊清單", howTitle: "使用方式",
@@ -133,6 +134,7 @@ const T = {
     warnOther: "這不是 BGG 的圖片連結。可以使用，但其他網站的圖片有時會失效。",
     errLoad: "圖片無法載入。請確認複製的是圖片網址，而不是網頁網址。",
     ok: "沒問題。", allDone: "每款遊戲都有圖片了。別忘了在下方存檔。",
+    locked: "這個頁面只在編輯模式下開放。請先在桌遊清單頁面解鎖編輯模式。",
   },
 };
 let lang = localStorage.getItem("bglist.lang") || (/^zh/i.test(navigator.language) ? "zh" : "en");
@@ -276,7 +278,16 @@ function bind() {
 
 async function getJSON(u) { try { const r = await fetch(u, { cache: "no-cache" }); return r.ok ? await r.json() : null; } catch { return null; } }
 (async () => {
-  const [g, im] = await Promise.all([getJSON("data/games.json"), getJSON("data/images.json")]);
+  const [g, im, conf] = await Promise.all([getJSON("data/games.json"), getJSON("data/images.json"), getJSON("data/config.json")]);
+  // only available in edit mode (unlock it on the shelf page)
+  let saved = ""; try { saved = localStorage.getItem("bglist.edit") || ""; } catch { /* ignore */ }
+  const hash = conf?.editPasswordHash || saved;
+  if (!saved || saved !== hash) {
+    document.querySelector(".wrap").innerHTML = `<section class="howto" style="text-align:center;padding:40px 20px">
+      <strong>${t("locked")}</strong><p style="margin:8px 0 0"><a href="./">${t("back")}</a></p></section>`;
+    document.querySelectorAll("[data-t]").forEach(el => el.innerHTML = t(el.dataset.t));
+    return;
+  }
   games = (g?.games || []).slice().sort((a, b) => (a.type === b.type ? 0 : a.type === "base" ? -1 : 1) || a.name.localeCompare(b.name));
   repo = Object.fromEntries(Object.entries(im?.images || {}).map(([k, v]) => [k, v]));
   try { draft = JSON.parse(localStorage.getItem(DRAFT) || "{}"); } catch { draft = {}; }

@@ -12,25 +12,24 @@
 </head>
 <body>
 
-<header class="felt">
-  <div class="felt-inner">
-    <div class="title-row">
-      <h1 id="title">Board game shelf</h1>
-      <div class="header-tools">
-        <button class="ghost" id="langBtn" type="button" aria-label="Switch language">中文</button>
+<header class="top">
+  <div class="top-inner">
+    <div class="top-row">
+      <div class="brand">
+        <h1 id="title">Board game shelf</h1>
+        <p class="sync-note" id="syncNote"></p>
       </div>
-    </div>
-    <p class="sync-note" id="syncNote"></p>
-
-    <div class="profile-row" id="profileRow" role="group" aria-label="Friends"></div>
-
-    <div class="search-row">
       <label class="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
         <input id="q" type="search" autocomplete="off" data-i18n-ph="searchPh" placeholder="Search by name, designer, mechanic…">
       </label>
-      <button class="pick" id="pickBtn" type="button" data-i18n="pick">Pick one for us</button>
+      <button class="pick" id="pickBtn" type="button"><span aria-hidden="true">🎲</span> <span data-i18n="pick">Pick one for us</span></button>
+      <div class="header-tools">
+        <button class="icon-btn" id="langBtn" type="button" aria-label="Switch language">中文</button>
+        <button class="icon-btn" id="editBtn" type="button" aria-label="Edit mode"></button>
+      </div>
     </div>
+    <div class="profile-row" id="profileRow" role="group" aria-label="Friends"></div>
   </div>
 </header>
 
@@ -60,13 +59,14 @@
 </div>
 
 <footer>
-  <a href="images.html" class="bgg-credit" id="picsLink">Add box pictures</a>
-  <span class="bgg-credit" aria-hidden="true"> · </span>
+  <span class="edit-only"><a href="images.html" class="bgg-credit" id="picsLink">Add box pictures</a>
+  <span class="bgg-credit" aria-hidden="true"> · </span></span>
   <a href="https://boardgamegeek.com" target="_blank" rel="noopener" class="bgg-credit">Powered by BoardGameGeek</a>
 </footer>
 
 <dialog id="gameDialog" class="dialog"><div id="gameBody"></div></dialog>
 <dialog id="profileDialog" class="dialog narrow"><div id="profileBody"></div></dialog>
+<dialog id="editDialog" class="dialog narrow"><div id="editBody"></div></dialog>
 
 <script src="app.js"></script>
 </body>
