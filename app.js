@@ -503,7 +503,31 @@ function update(full = true) {
 }
 
 // ------------------------------------------------------------ detail dialog
-function openGame(id, fromPick = false) {
+// ------------------------------------------------------------ fly-in animation
+// The clicked card's box art lifts off and flies into place in the game window,
+// and flies back into its card when the window closes.
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const FLY_MS = 420, EASE = "cubic-bezier(.2,.75,.15,1)";
+let flight = null;   // { src } while a card's art is "away" in the window
+let closing = false;
+const coverOf = root => root?.querySelector(".cover img, .cover .ph");
+const onScreen = r => r.width > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+const cardCover = id => coverOf(document.querySelector(`#grid .card[data-id="${id}"]`));
+const box = r => ({ left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+
+function fly(fromEl, fromRect, toRect) {
+  const c = fromEl.cloneNode(true);
+  c.removeAttribute("data-ph"); c.classList.add("flyer"); c.style.visibility = "visible";
+  Object.assign(c.style, box(fromRect));
+  $("#gameDialog").append(c);
+  return c.animate([box(fromRect), box(toRect)], { duration: FLY_MS, easing: EASE, fill: "forwards" }).finished.then(() => c);
+}
+function restoreSource() {
+  if (flight?.src) flight.src.style.visibility = "";
+  flight = null;
+}
+
+function openGame(id, fromPick = false, fromCard = null) {
   const g = byId.get(id); if (!g) return;
   const [lo, hi] = timeOf(g);
   const sub = subName(g);
@@ -563,16 +587,60 @@ function openGame(id, fromPick = false) {
   </div>`;
   $("#gameBody").dataset.id = id;
   $("#gameBody").querySelectorAll("img[data-ph]").forEach(i => i.addEventListener("error", onImgError, { once: true }));
-  const d = $("#gameDialog");
-  if (!d.open) d.showModal();
+  const d = $("#gameDialog"), body = $("#gameBody");
+  const wasOpen = d.open;
+  if (wasOpen) restoreSource();   // switching games inside the window: no flight
+  const src = !wasOpen && !reduceMotion.matches ? coverOf(fromCard) : null;
+  const srcRect = src?.getBoundingClientRect();
+  const canFly = src && onScreen(srcRect);
+  const target = coverOf(body);
+  // the window's picture takes the same shape as the card's, so the landing spot is known before it loads
+  if (target && src?.naturalWidth) target.style.aspectRatio = `${src.naturalWidth} / ${src.naturalHeight}`;
+  d.classList.toggle("flip", !!canFly);
+  if (!wasOpen) d.showModal();
   d.scrollTop = 0;
+  if (wasOpen) { body.animate([{ opacity: .4 }, { opacity: 1 }], { duration: 200, easing: "ease-out" }); return; }
+  if (!canFly || !target) return;
+
+  flight = { src };
+  src.style.visibility = "hidden";
+  target.style.visibility = "hidden";
+  body.animate([{ opacity: 0, transform: "scale(.97)" }, { opacity: 1, transform: "none" }],
+    { duration: 300, delay: 120, easing: "ease-out", fill: "backwards" });
+  fly(src, srcRect, target.getBoundingClientRect()).then(c => {
+    const land = () => { target.style.visibility = ""; c.remove(); };
+    // keep the flying copy until the window's (larger) picture has loaded
+    target.tagName === "IMG" && !target.complete ? target.addEventListener("load", land, { once: true }) || setTimeout(land, 1500) : land();
+  });
+}
+
+function closeGame() {
+  const d = $("#gameDialog"), body = $("#gameBody");
+  if (!d.open || closing) return;
+  const back = !reduceMotion.matches ? cardCover(+body.dataset.id) : null;
+  const target = coverOf(body);
+  const backRect = back?.getBoundingClientRect();
+  if (!back || !target || !onScreen(backRect)) { d.close(); return; }
+  closing = true;
+  back.style.visibility = "hidden";
+  d.querySelectorAll(".flyer").forEach(f => f.remove());
+  const from = target.getBoundingClientRect();
+  target.style.visibility = "hidden";
+  body.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(.98)" }], { duration: 220, easing: "ease-in", fill: "forwards" });
+  fly(target, from, backRect).then(c => {
+    back.style.visibility = "";
+    d.close(); c.remove(); closing = false;
+    body.getAnimations().forEach(a => a.cancel());
+  });
 }
 function pickRandom() {
   const list = filtered();
   if (!list.length) return;
   const cur = +($("#gameBody").dataset.id || 0);
   const pool = list.length > 1 ? list.filter(g => g.id !== cur) : list;
-  openGame(pool[Math.floor(Math.random() * pool.length)].id, true);
+  const pick = pool[Math.floor(Math.random() * pool.length)].id;
+  // if the chosen game's card is on screen, its art flies out of it
+  openGame(pick, true, document.querySelector(`#grid .card[data-id="${pick}"]`));
 }
 
 // ------------------------------------------------------------ profiles dialog
@@ -716,13 +784,13 @@ function bind() {
     }
   });
 
-  $("#grid").addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openGame(+c.dataset.id); });
+  $("#grid").addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openGame(+c.dataset.id, false, c); });
 
   const gd = $("#gameDialog");
   gd.addEventListener("click", e => {
-    if (e.target === gd) return gd.close();
+    if (e.target === gd) return closeGame();
     const b = e.target.closest("button"); if (!b) return;
-    if (b.hasAttribute("data-close")) gd.close();
+    if (b.hasAttribute("data-close")) closeGame();
     else if (b.hasAttribute("data-again")) pickRandom();
     else if (b.dataset.open) openGame(+b.dataset.open);
     else if (b.hasAttribute("data-desc")) {
@@ -738,7 +806,13 @@ function bind() {
     if (e.target.checked) { if (!p.played.includes(id)) p.played.push(id); } else p.played = p.played.filter(x => x !== id);
     saveProfiles(); render(); renderProfiles();
   });
-  gd.addEventListener("close", () => { $("#gameBody").dataset.id = ""; });
+  gd.addEventListener("cancel", e => { e.preventDefault(); closeGame(); });   // Esc key
+  gd.addEventListener("close", () => {
+    $("#gameBody").dataset.id = "";
+    restoreSource(); closing = false;
+    gd.querySelectorAll(".flyer").forEach(f => f.remove());
+    document.querySelectorAll("#grid .cover img, #grid .cover .ph").forEach(el => el.style.visibility = "");
+  });
 
   const pd = $("#profileDialog");
   pd.addEventListener("click", e => { if (e.target === pd || e.target.closest("[data-close]")) pd.close(); });

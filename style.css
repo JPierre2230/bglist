@@ -4,17 +4,17 @@
   --head-2: #3d2f7a;
   --head-ink: #ffffff;
   --head-soft: #c3bbef;
-  --page: #f6f2ea;
+  --page: #dfeafa;
   --tile: #ffffff;
-  --tile-sunk: #f1ece2;
+  --tile-sunk: #eaf1fb;
   --ink: #1f1b2e;
   --ink-soft: #6c6680;
-  --line: #e4ddd0;
+  --line: #c9d8ee;
   --accent: #ff5d3a;         /* coral: active filters, pips */
   --accent-ink: #ffffff;
   --mark: #ffc23d;           /* meeple yellow: pick button */
   --pip: var(--accent);
-  --pip-off: #e9e2d6;
+  --pip-off: #d3e0f2;
   --focus: #6a4cff;
   --shadow: 0 1px 2px rgba(31, 27, 46, .06), 0 4px 14px rgba(31, 27, 46, .07);
   --shadow-hover: 0 4px 10px rgba(31, 27, 46, .10), 0 14px 30px rgba(31, 27, 46, .14);
@@ -291,7 +291,7 @@ footer { text-align: center; padding: 6px 0 30px; }
 }
 
 /* ---------- artwork ---------- */
-:root { --veil-top: rgba(246, 242, 234, .70); --veil-bottom: rgba(246, 242, 234, .90); }
+:root { --veil-top: rgba(214, 228, 248, .68); --veil-bottom: rgba(223, 234, 250, .90); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --veil-top: rgba(18, 15, 30, .55); --veil-bottom: rgba(18, 15, 30, .82); } }
 :root[data-theme="dark"] { --veil-top: rgba(18, 15, 30, .55); --veil-bottom: rgba(18, 15, 30, .82); }
 
@@ -333,3 +333,12 @@ footer { text-align: center; padding: 6px 0 30px; }
   .top .icon-btn, .top .token { background: rgba(12, 9, 30, .5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
   .top .token[aria-pressed="true"] { background: var(--head-ink); }
 }
+
+/* ---------- game window: box art flies in from its card ---------- */
+#gameDialog { background: transparent; box-shadow: none; overflow: auto; }
+#gameBody { position: relative; background: var(--tile); border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0, 0, 0, .4); }
+#gameDialog.flip[open] { animation: none; }
+#gameDialog.flip::backdrop { animation: veil-in .3s ease-out; }
+@keyframes veil-in { from { opacity: 0; } }
+.flyer { position: fixed; margin: 0; z-index: 10; pointer-events: none; object-fit: contain; border-radius: 6px; box-shadow: 0 18px 40px rgba(0, 0, 0, .35); }
+.flyer.ph { display: grid; }
