@@ -298,7 +298,8 @@ function guessRepo() {
   const seg = location.pathname.split("/").filter(Boolean)[0];
   return `${m[1]}/${seg && !seg.includes(".") ? seg : m[1] + ".github.io"}`;
 }
-const ghFetch = (path, opts = {}, auth = GH) => fetch(`https://api.github.com/repos/${auth.repo}/${path}`, {
+// no trailing slash: GitHub refuses "…/repos/owner/name/" in a way browsers report as a network failure
+const ghFetch = (path, opts = {}, auth = GH) => fetch(`https://api.github.com/repos/${auth.repo}${path ? "/" + path : ""}`, {
   cache: "no-store", ...opts,
   headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${auth.token}`, "X-GitHub-Api-Version": "2022-11-28", ...(opts.headers || {}) },
 });
