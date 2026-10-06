@@ -218,6 +218,10 @@ def parse_thing(item):
         "rating": round(rating, 2) if rating else None,
         "rank": rank,
         "categories": links("boardgamecategory"),
+        # BGG's game types (strategygames, thematic, partygames, familygames, abstracts, wargames, ...)
+        "domains": [r.get("name") for r in item.findall("statistics/ratings/ranks/rank[@type='family']")],
+        # only the BGG families that describe a category or mechanism (e.g. "Category: Dungeon Crawler")
+        "families": [f for f in links("boardgamefamily") if f.startswith(("Category:", "Mechanism:"))],
         "mechanics": links("boardgamemechanic"),
         "designers": links("boardgamedesigner"),
         "baseIds": [int(l.get("id")) for l in item.findall("link[@type='boardgameexpansion']")
@@ -364,7 +368,7 @@ def main():
         games = []
         for gid, g in coll.items():
             d = details.get(gid, {})
-            merged = {**g, **{k: v for k, v in d.items() if v not in (None, [], "")}}
+            merged = {**g, **{k: v for k, v in d.items() if v not in (None, [], "") or k == "domains"}}
             merged["name"] = g["name"] or d.get("primaryName") or f"#{gid}"
             merged.pop("primaryName", None)
             for k in ("altNames", "categories", "mechanics", "designers", "baseIds", "bestPlayers", "recPlayers"):

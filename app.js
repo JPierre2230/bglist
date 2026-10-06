@@ -104,7 +104,48 @@ const TIME = [["t1", 0, 30], ["t2", 31, 60], ["t3", 61, 120], ["t4", 121, 9999]]
 const WEIGHT = [["w1", 0, 2], ["w2", 2, 3], ["w3", 3, 4], ["w4", 4, 9]];
 const SORTS = ["name", "rating", "light", "heavy", "short", "long", "year"];
 const STORE = "bglist.profiles.v1";
-const FACET_PREVIEW = 10;
+// The 10 categories and 10 mechanics used for filtering. Each game is sorted into them from
+// BGG's own (much longer) lists; the game window still shows BGG's full lists.
+const has = (list, ...names) => names.some(n => list.includes(n));
+const like = (list, re) => list.some(x => re.test(x));
+const GROUPS = {
+  cats: [
+    { id: "strategy", en: "Strategy", zh: "策略", test: g => g.domains ? g.domains.includes("strategygames")
+        : has(g.categories, "Economic", "Industry / Manufacturing", "Civilization", "City Building", "Territory Building", "Political") || (g.weight >= 3.2 && !isCrawler(g)) },
+    { id: "thematic", en: "Thematic / Adventure", zh: "主題／冒險", test: g => g.domains?.includes("thematic")
+        || has(g.categories, "Adventure", "Exploration", "Horror")
+        || has(g.mechanics, "Storytelling", "Narrative Choice / Paragraph", "Legacy Game", "Scenario / Mission / Campaign Game") },
+    { id: "combat", en: "Combat / Skirmish", zh: "戰鬥／對戰", test: g => g.domains?.includes("wargames") || has(g.categories, "Fighting", "Wargame") },
+    { id: "crawler", en: "Dungeon Crawler / Boss Battler", zh: "地城探索／魔王戰", test: g => isCrawler(g) },
+    { id: "coop", en: "Cooperative", zh: "合作", test: g => has(g.mechanics, "Cooperative Game") },
+    { id: "deduction", en: "Social Deduction / Bluffing", zh: "陣營推理／吹牛", test: g => has(g.categories, "Bluffing")
+        || has(g.mechanics, "Hidden Roles", "Traitor Game", "Roles with Asymmetric Information") },
+    { id: "party", en: "Party", zh: "派對", test: g => g.domains?.includes("partygames") || has(g.categories, "Party Game") },
+    { id: "cards", en: "Card / Deck Building", zh: "卡牌／牌庫構築", test: g => has(g.categories, "Card Game", "Collectible Components")
+        || has(g.mechanics, "Deck, Bag, and Pool Building", "Deck Construction") },
+    { id: "abstract", en: "Abstract / Puzzle", zh: "抽象／益智", test: g => g.domains?.includes("abstracts") || has(g.categories, "Abstract Strategy", "Puzzle") },
+    { id: "family", en: "Family / Casual", zh: "家庭／輕鬆", test: g => g.domains ? g.domains.some(d => d === "familygames" || d === "childrensgames")
+        : has(g.categories, "Children's Game") || (g.weight > 0 && g.weight < 1.9 && !has(g.categories, "Party Game")) },
+  ],
+  mechs: [
+    { id: "deckbuild", en: "Deck / Bag Building", zh: "牌庫／抽袋構築", test: g => has(g.mechanics, "Deck, Bag, and Pool Building", "Deck Construction") },
+    { id: "workers", en: "Worker Placement", zh: "工人放置", test: g => like(g.mechanics, /^Worker Placement/) },
+    { id: "area", en: "Area Control / Influence", zh: "區域控制", test: g => has(g.mechanics, "Area Majority / Influence", "King of the Hill") },
+    { id: "drafting", en: "Card Drafting", zh: "輪抽／選牌", test: g => like(g.mechanics, /Drafting/) && !has(g.mechanics, "Action Drafting") || has(g.mechanics, "Open Drafting", "Closed Drafting") },
+    { id: "dice", en: "Dice Rolling / Dice Placement", zh: "擲骰／骰子放置", test: g => like(g.mechanics, /\b(Dice|Die)\b/) || has(g.mechanics, "Re-rolling and Locking") },
+    { id: "actions", en: "Action Selection", zh: "行動選擇", test: g => like(g.mechanics, /^Action /) || has(g.mechanics, "Rondel", "Follow", "Command Cards") },
+    { id: "tiles", en: "Tile Placement", zh: "板塊放置", test: g => has(g.mechanics, "Tile Placement", "Grid Coverage") },
+    { id: "hand", en: "Hand Management", zh: "手牌管理", test: g => has(g.mechanics, "Hand Management") },
+    { id: "sets", en: "Set Collection", zh: "收集組合", test: g => has(g.mechanics, "Set Collection") },
+    { id: "powers", en: "Variable Player Powers / Asymmetry", zh: "角色能力／不對稱", test: g => has(g.mechanics, "Variable Player Powers") },
+  ],
+};
+// dungeon crawlers and boss battlers: BGG tags these as families; otherwise co-op games built around fighting
+function isCrawler(g) {
+  return like(g.families || [], /Dungeon Crawl|Boss Battler/)
+    || (has(g.categories, "Fighting") && has(g.mechanics, "Cooperative Game"));
+}
+const groupLabel = (kind, id) => { const x = GROUPS[kind].find(x => x.id === id); return x ? x[lang] || x.en : id; };
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -196,7 +237,7 @@ const S = {
   q: "", players: new Set(), pmode: "can", time: new Set(), weight: new Set(), ld: new Set(),
   cats: new Set(), mechs: new Set(), exp: false, profile: "", pfilter: "all", sort: "name",
 };
-const ui = { showAllCats: false, showAllMechs: false };
+
 
 // ------------------------------------------------------------ helpers
 const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
@@ -211,8 +252,23 @@ const img = (g, big = false) => {
   if (!src) return placeholder(g);
   return `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-ph="${g.id}">`;
 };
-const displayName = g => (lang === "zh" && g.cjkName) ? g.cjkName : g.name;
-const subName = g => (lang === "zh" && g.cjkName) ? g.name : (g.cjkName || "");
+const displayName = g => (lang === "zh" && g.zhName) ? g.zhName : g.name;
+// English mode shows no Chinese at all; 中文 mode shows the English name underneath
+const subName = g => (lang === "zh" && g.zhName) ? g.name : "";
+
+// Chinese names: BGG often lists Simplified names, so prefer a Traditional one and
+// convert Simplified characters when that's all there is (unambiguous characters only).
+const S2T_S = "与专业丛东丝丢两严丧临为丽举么义乌乐乔习乡书买乱争亏亚产亩亲亵亿仅从仓仪们众优会伛伞伟传伤伥伦伧伪伫体佥侠侣侥侦侧侨侩侪侬俣俦俨俩俪俭债倾偬偻偾偿傥傧储傩儿兑兖兰关兴兹养兽冁内冈册写军农冯决况冻净凉减凑凛凤凫凭凯击凿刍刘则刚创删刭刹刽刿剀剂剐剑剥剧劝办务劢动励劲劳势匀匦匮区医华协单卖卢卧卫却卺厅厉压厌厍厕厢厣厦厨厩厮县叁双变叙叠号叽吓吕吗吨听启吴呐呒呓呕呖呗员呙呛呜咏咙咛咝咤响哑哒哓哔哕哙哜哝哟唛唠唢唤啧啬啭啸喷喽喾嗫嗳嘘嘤嘱噜嚣园囱围囵国图圆圣圹场坏块坚坜坞坟坠垄垅垆垒垦垩垫垭垲垴埘埚堑堕墙壮声壳壶处备够头夹夺奁奂奋奖奥妆妇妈妩妪妫姗姹娄娅娆娇娈娱娲婴婵婶媪嫒嫔嫱嬷孙学孪宝实宠审宪宫宽宾寝对寻导寿将尔尘尧尴层屉届属屡屦屿岁岂岖岗岘岚岛岭岽岿峄峡峤峥峦峰崂崃崭嵘嵝巅巩巯币帅师帏帐帜带帧帮帱帻帼幂庄庆床庐庑库应庙庞废廪开异弃弑张弪弯弹强归彦彻径徕忆忏忧忾怀态怂怃怄怅怆怜总怼怿恋恒恳恸恹恺恻恼恽悦悫悬悭悯惊惧惨惩惫惬惭惮惯愠愤愦慑懑懒懔戆戋戏戗战戬户扑执扩扪扫扬扰抚抛抟抠抡抢护报担拟拢拣拥拦拧拨择挚挛挝挞挟挠挡挢挣挤挥捞损捡换捣掳掴掷掸掺掼揽揿搀搁搂搅携摄摅摇摈摊撄撑撵撷撸撺擞攒敌敛数斋斓斩断无旧时旷昙昵昼显晋晒晓晔晕晖暂暧机杀杂权条来杨杩构枞枢枣枥枧枨枪枫枭柠柽栀栅标栈栉栊栋栌栎栏树栖样栾桠桡桢档桤桥桦桧桨桩梦检棂椁椟椠椤椭楼榄榇榈榉槛槟槠横樯樱橥橱橹橼檩欢欤欧歼殁殇残殒殓殚殡殴毂毕毙毡毵氇气氢氩氲汉汤汹沟没沣沤沥沦沧沩沪泞泪泶泷泸泺泻泼泽泾洁洒洼浃浅浆浇浈浊测浍济浏浑浒浓浔涛涝涞涟涠涡涣涤润涧涨涩渊渌渍渎渐渑渔渖渗温湾湿溃溅溆滗滚滞滠满滢滤滥滦滨滩潆潇潋潍潜潴澜濑濒灏灭灯灵灶灾灿炀炉炖炜炝点炽烁烂烃烛烦烧烨烩烫烬热焕焖焘爱爷牍牦牵牺犊状犷犸犹狈狞独狭狮狯狰狱狲猃猎猕猡猪猫猬献獭玑玛玮环现玺珐珑珲琏琐琼瑶瑷璎瓒瓮瓯电画畅畴疖疗疟疠疡疬疮疯疱疴痈痉痒痖痨痪痫痴瘅瘗瘘瘪瘫瘾瘿癞癣癫皑皱皲盏盐监盖盗盘眍眦睁睐睑瞒瞩矫矶矾矿砀码砖砗砚砜砺砻砾础硕硖硗硷碍碛碜碱礼祢祯祷祸禀禄禅离秃秆秘积称秽稆税稣稳穑穷窃窍窑窜窝窥窦窭竖竞笃笋笔笕笺笼笾筚筛筝筹简箦箧箨箩箪箫篑篓篮篱簖籁籴类籼粜粝粤粪粮粽糁糇糍紧絷纟纠纡红纣纥约级纨纩纪纫纬纭纯纰纱纲纳纵纶纷纸纹纺纽纾线绀绁绂练组绅细织终绉绊绋绌绍绎经绐绑绒结绔绕绗绘给绚绛络绝绞统绠绡绢绣绥绦继绨绩绪绫续绮绯绰绲绳维绵绶绸绺绻综绽绾绿缀缁缂缃缄缅缆缇缈缉缋缌缍缎缏缑缒缓缔缕编缗缘缙缚缛缜缝缟缠缡缢缣缤缥缦缧缨缩缪缫缬缭缮缯缰缱缲缳缴缵罂网罗罚罢罴羁羟羡群翘耢耧耸耻聂聋职聍联聩聪肃肠肤肮肴肾肿胀胁胆胧胨胪胫胶脉脍脐脑脓脔脚脱脶脸腭腻腼腽腾膑舆舣舰舱舻艰艺节芈芗芜芦苁苇苈苋苌苍苎茎茏茑茔茕茧荆荚荛荜荞荟荠荣荤荥荦荧荨荩荪荬荭荮莅莱莲莳莴莶莸莹莺莼萝萤营萦萧萨葱蒇蒉蒋蒌蓝蓟蓠蓣蓥蓦蔷蔹蔺蔼蕲蕴薮藓蘖虏虑虚虬虮虱虽虾虿蚀蚁蚂蚕蚬蛊蛎蛏蛮蛰蛱蛲蛳蛴蜕蜗蝇蝈蝉蝼蝾螨衅衔补衬衮袄袜袭装裆裢裣裤褛褴见观规觅视觇览觉觊觋觌觎觏觐觑觞触觯誉誊讠计订讣认讥讦讧讨让讪讫训议讯记讲讳讴讵讶讷许讹论讼讽设访诀诂诃评诅识诈诉诊诋诌词诎诏译诒诓诔试诖诗诘诙诚诛诜话诞诟诠诡询诣诤该详诧诨诩诫诬语诮误诰诱诲诳说诵诶请诸诹诺读诼诽课诿谀谁谂调谄谅谆谇谈谊谋谌谍谎谏谐谑谒谓谔谕谖谗谘谙谚谛谜谝谟谠谡谢谣谤谦谧谨谩谪谫谬谭谮谯谰谱谲谳谴谵谶贝贞负贡财责贤败账货质贩贪贫贬购贮贯贰贱贲贳贴贵贶贷贸费贺贻贼贽贾贿赀赁赂赃资赅赆赇赈赉赊赋赌赍赎赏赐赓赔赕赖赘赙赚赛赜赠赡赢赣赵赶趋趱趸跃跄跞践跷跸跹跻踌踪踬踯蹑蹒蹰蹿躏躜躯车轧轨轩轫转轭轮软轰轱轲轳轴轵轶轷轸轹轺轻轼载轾轿辁辂较辄辅辆辇辈辉辊辋辍辎辏辐辑输辔辕辖辗辘辙辚辞辩辫边辽达迁过迈运还这进远违连迟迩迳选逊递逦逻遗遥邓邝邬邮邹邺邻郏郐郑郓郦郧郸酝酱酽酾酿释銮錾钅钆钇钉钊钋钌钍钎钏钐钒钓钔钕钗钙钚钛钜钝钞钠钡钢钣钤钦钧钨钩钪钬钭钮钯钰钱钲钳钴钵钶钷钸钹钺钼钽钾钿铀铁铂铃铄铅铆铈铉铊铋铌铍铎铐铑铒铕铖铗铘铙铛铜铝铞铟铠铡铢铣铤铥铧铨铩铪铫铬铭铮铯铰铱铳铴铵银铷铸铹铺铼铽铿销锁锂锃锄锅锆锇锈锉锊锋锌锍锎锏锐锑锒锓锔锕锖锗锘错锚锛锝锞锟锡锢锣锤锥锦锨锩锪锬锭键锯锰锱锲锴锵锶锷锸锹锺锻锼锾锿镀镁镂镄镅镆镇镉镊镌镍镏镐镑镒镓镔镖镗镘镙镛镜镝镞镟镡镣镤镥镦镧镨镩镪镫镬镭镯镱镲镳镶长门闩闪闫闭问闯闰闱闳间闵闶闷闸闹闺闻闼闽闾阀阁阂阃阄阅阆阈阉阊阋阌阍阎阏阐阑阒阔阕阖阗阙阚队阳阴阵阶际陆陇陈陉陕陧陨险随隐隶隽难雇雏雠雳雾霁霉霭靓静靥鞑鞒鞯鞲韦韧韩韪韫韬韵页顶顷顸项顺顼顽顾顿颀颁颂颃预颅领颇颈颉颊颌颍颏颐频颓颔颖颗题颚颛颜额颞颟颠颡颢颤颥颦颧风飑飒飓飕飘飙飚飞飨餍饣饧饨饩饪饫饬饭饮饯饰饱饲饴饵饶饷饺饼饽饿馀馁馄馅馆馇馈馊馋馍馏馐馑馒馓馔馕马驭驮驯驰驱驳驴驵驶驷驸驹驺驻驼驽驾驿骀骁骂骄骅骆骇骈骊骋验骏骐骑骒骓骖骗骘骚骛骜骝骞骟骠骡骢骣骤骥骧髅髋髌鬓魇魉鱼鱿鲁鲂鲅鲆鲇鲈鲋鲍鲎鲐鲑鲒鲔鲕鲚鲛鲜鲞鲟鲠鲡鲢鲣鲤鲥鲦鲧鲨鲩鲫鲭鲮鲰鲱鲲鲳鲴鲵鲶鲷鲸鲺鲻鲼鲽鳃鳄鳅鳆鳇鳊鳋鳌鳍鳎鳏鳐鳓鳔鳕鳖鳗鳘鳙鳜鳝鳞鳟鳢鸟鸠鸡鸢鸣鸥鸦鸨鸩鸪鸫鸬鸭鸯鸱鸲鸳鸵鸶鸷鸸鸹鸺鸽鸾鸿鹁鹂鹃鹄鹅鹆鹈鹉鹊鹋鹌鹎鹏鹑鹕鹗鹘鹚鹛鹜鹞鹣鹤鹦鹧鹨鹩鹪鹫鹬鹭鹰鹱鹳鹾麦麸麽黄黉黩黪黾鼋鼍鼹齐齑齿龀龃龄龅龆龇龈龉龊龋龌龙龚龛龟";
+const S2T_T = "與專業叢東絲丟兩嚴喪臨為麗舉麼義烏樂喬習鄉書買亂爭虧亞產畝親褻億僅從倉儀們眾優會傴傘偉傳傷倀倫傖偽佇體僉俠侶僥偵側僑儈儕儂俁儔儼倆儷儉債傾傯僂僨償儻儐儲儺兒兌兗蘭關興茲養獸囅內岡冊寫軍農馮決況凍淨涼減湊凜鳳鳧憑凱擊鑿芻劉則剛創刪剄剎劊劌剴劑剮劍剝劇勸辦務勱動勵勁勞勢勻匭匱區醫華協單賣盧臥衛卻巹廳厲壓厭厙廁廂厴廈廚廄廝縣叄雙變敘疊號嘰嚇呂嗎噸聽啟吳吶嘸囈嘔嚦唄員咼嗆嗚詠嚨嚀噝吒響啞噠嘵嗶噦噲嚌噥喲嘜嘮嗩喚嘖嗇囀嘯噴嘍嚳囁噯噓嚶囑嚕囂園囪圍圇國圖圓聖壙場壞塊堅壢塢墳墜壟壠壚壘墾堊墊埡塏堖塒堝塹墮牆壯聲殼壺處備夠頭夾奪奩奐奮獎奧妝婦媽嫵嫗媯姍奼婁婭嬈嬌孌娛媧嬰嬋嬸媼嬡嬪嬙嬤孫學孿寶實寵審憲宮寬賓寢對尋導壽將爾塵堯尷層屜屆屬屢屨嶼歲豈嶇崗峴嵐島嶺崬巋嶧峽嶠崢巒峰嶗崍嶄嶸嶁巔鞏巰幣帥師幃帳幟帶幀幫幬幘幗冪莊慶床廬廡庫應廟龐廢廩開異棄弒張弳彎彈強歸彥徹徑徠憶懺憂愾懷態慫憮慪悵愴憐總懟懌戀恆懇慟懨愷惻惱惲悅愨懸慳憫驚懼慘懲憊愜慚憚慣慍憤憒懾懣懶懍戇戔戲戧戰戩戶撲執擴捫掃揚擾撫拋摶摳掄搶護報擔擬攏揀擁攔擰撥擇摯攣撾撻挾撓擋撟掙擠揮撈損撿換搗擄摑擲撣摻摜攬撳攙擱摟攪攜攝攄搖擯攤攖撐攆擷擼攛擻攢敵斂數齋斕斬斷無舊時曠曇暱晝顯晉曬曉曄暈暉暫曖機殺雜權條來楊榪構樅樞棗櫪梘棖槍楓梟檸檉梔柵標棧櫛櫳棟櫨櫟欄樹棲樣欒椏橈楨檔榿橋樺檜槳樁夢檢欞槨櫝槧欏橢樓欖櫬櫚櫸檻檳櫧橫檣櫻櫫櫥櫓櫞檁歡歟歐殲歿殤殘殞殮殫殯毆轂畢斃氈毿氌氣氫氬氳漢湯洶溝沒灃漚瀝淪滄溈滬濘淚澩瀧瀘濼瀉潑澤涇潔灑窪浹淺漿澆湞濁測澮濟瀏渾滸濃潯濤澇淶漣潿渦渙滌潤澗漲澀淵淥漬瀆漸澠漁瀋滲溫灣溼潰濺漵潷滾滯灄滿瀅濾濫灤濱灘瀠瀟瀲濰潛瀦瀾瀨瀕灝滅燈靈灶災燦煬爐燉煒熗點熾爍爛烴燭煩燒燁燴燙燼熱煥燜燾愛爺牘犛牽犧犢狀獷獁猶狽獰獨狹獅獪猙獄猻獫獵獼玀豬貓蝟獻獺璣瑪瑋環現璽琺瓏琿璉瑣瓊瑤璦瓔瓚甕甌電畫暢疇癤療瘧癘瘍癧瘡瘋皰痾癰痙癢瘂癆瘓癇痴癉瘞瘻癟癱癮癭癩癬癲皚皺皸盞鹽監蓋盜盤瞘眥睜睞瞼瞞矚矯磯礬礦碭碼磚硨硯碸礪礱礫礎碩硤磽礆礙磧磣鹼禮禰禎禱禍稟祿禪離禿稈秘積稱穢穭稅穌穩穡窮竊竅窯竄窩窺竇窶豎競篤筍筆筧箋籠籩篳篩箏籌簡簀篋籜籮簞簫簣簍籃籬籪籟糴類秈糶糲粵糞糧粽糝餱餈緊縶糹糾紆紅紂紇約級紈纊紀紉緯紜純紕紗綱納縱綸紛紙紋紡紐紓線紺紲紱練組紳細織終縐絆紼絀紹繹經紿綁絨結絝繞絎繪給絢絳絡絕絞統綆綃絹繡綏絛繼綈績緒綾續綺緋綽緄繩維綿綬綢綹綣綜綻綰綠綴緇緙緗緘緬纜緹緲緝繢緦綞緞緶緱縋緩締縷編緡緣縉縛縟縝縫縞纏縭縊縑繽縹縵縲纓縮繆繅纈繚繕繒韁繾繰繯繳纘罌網羅罰罷羆羈羥羨群翹耮耬聳恥聶聾職聹聯聵聰肅腸膚骯餚腎腫脹脅膽朧腖臚脛膠脈膾臍腦膿臠腳脫腡臉顎膩靦膃騰臏輿艤艦艙艫艱藝節羋薌蕪蘆蓯葦藶莧萇蒼苧莖蘢蔦塋煢繭荊莢蕘蓽蕎薈薺榮葷滎犖熒蕁藎蓀蕒葒葤蒞萊蓮蒔萵薟蕕瑩鶯蓴蘿螢營縈蕭薩蔥蕆蕢蔣蔞藍薊蘺蕷鎣驀薔蘞藺藹蘄蘊藪蘚櫱虜慮虛虯蟣蝨雖蝦蠆蝕蟻螞蠶蜆蠱蠣蟶蠻蟄蛺蟯螄蠐蛻蝸蠅蟈蟬螻蠑蟎釁銜補襯袞襖襪襲裝襠褳襝褲褸襤見觀規覓視覘覽覺覬覡覿覦覯覲覷觴觸觶譽謄訁計訂訃認譏訐訌討讓訕訖訓議訊記講諱謳詎訝訥許訛論訟諷設訪訣詁訶評詛識詐訴診詆謅詞詘詔譯詒誆誄試詿詩詰詼誠誅詵話誕詬詮詭詢詣諍該詳詫諢詡誡誣語誚誤誥誘誨誑說誦誒請諸諏諾讀諑誹課諉諛誰諗調諂諒諄誶談誼謀諶諜謊諫諧謔謁謂諤諭諼讒諮諳諺諦謎諞謨讜謖謝謠謗謙謐謹謾謫譾謬譚譖譙讕譜譎讞譴譫讖貝貞負貢財責賢敗賬貨質販貪貧貶購貯貫貳賤賁貰貼貴貺貸貿費賀貽賊贄賈賄貲賃賂贓資賅贐賕賑賚賒賦賭齎贖賞賜賡賠賧賴贅賻賺賽賾贈贍贏贛趙趕趨趲躉躍蹌躒踐蹺蹕躚躋躊蹤躓躑躡蹣躕躥躪躦軀車軋軌軒軔轉軛輪軟轟軲軻轤軸軹軼軤軫轢軺輕軾載輊轎輇輅較輒輔輛輦輩輝輥輞輟輜輳輻輯輸轡轅轄輾轆轍轔辭辯辮邊遼達遷過邁運還這進遠違連遲邇逕選遜遞邐邏遺遙鄧鄺鄔郵鄒鄴鄰郟鄶鄭鄆酈鄖鄲醞醬釅釃釀釋鑾鏨釒釓釔釘釗釙釕釷釺釧釤釩釣鍆釹釵鈣鈈鈦鉅鈍鈔鈉鋇鋼鈑鈐欽鈞鎢鉤鈧鈥鈄鈕鈀鈺錢鉦鉗鈷缽鈳鉕鈽鈸鉞鉬鉭鉀鈿鈾鐵鉑鈴鑠鉛鉚鈰鉉鉈鉍鈮鈹鐸銬銠鉺銪鋮鋏鋣鐃鐺銅鋁銱銦鎧鍘銖銑鋌銩鏵銓鎩鉿銚鉻銘錚銫鉸銥銃鐋銨銀銣鑄鐒鋪錸鋱鏗銷鎖鋰鋥鋤鍋鋯鋨鏽銼鋝鋒鋅鋶鐦鐧銳銻鋃鋟鋦錒錆鍺鍩錯錨錛鍀錁錕錫錮鑼錘錐錦鍁錈鍃錟錠鍵鋸錳錙鍥鍇鏘鍶鍔鍤鍬鍾鍛鎪鍰鎄鍍鎂鏤鐨鎇鏌鎮鎘鑷鐫鎳鎦鎬鎊鎰鎵鑌鏢鏜鏝鏍鏞鏡鏑鏃鏇鐔鐐鏷鑥鐓鑭鐠鑹鏹鐙鑊鐳鐲鐿鑔鑣鑲長門閂閃閆閉問闖閏闈閎間閔閌悶閘鬧閨聞闥閩閭閥閣閡閫鬮閱閬閾閹閶鬩閿閽閻閼闡闌闃闊闋闔闐闕闞隊陽陰陣階際陸隴陳陘陝隉隕險隨隱隸雋難僱雛讎靂霧霽黴靄靚靜靨韃鞽韉韝韋韌韓韙韞韜韻頁頂頃頇項順頊頑顧頓頎頒頌頏預顱領頗頸頡頰頜潁頦頤頻頹頷穎顆題顎顓顏額顳顢顛顙顥顫顬顰顴風颮颯颶颼飄飆飈飛饗饜飠餳飩餼飪飫飭飯飲餞飾飽飼飴餌饒餉餃餅餑餓餘餒餛餡館餷饋餿饞饃餾饈饉饅饊饌饢馬馭馱馴馳驅駁驢駔駛駟駙駒騶駐駝駑駕驛駘驍罵驕驊駱駭駢驪騁驗駿騏騎騍騅驂騙騭騷騖驁騮騫騸驃騾驄驏驟驥驤髏髖髕鬢魘魎魚魷魯魴鮁鮃鯰鱸鮒鮑鱟鮐鮭鮚鮪鮞鱭鮫鮮鯗鱘鯁鱺鰱鰹鯉鰣鰷鯀鯊鯇鯽鯖鯪鯫鯡鯤鯧鯝鯢鯰鯛鯨鯴鯔鱝鰈鰓鱷鰍鰒鰉鯿鰠鰲鰭鰨鰥鰩鰳鰾鱈鱉鰻鰵鱅鱖鱔鱗鱒鱧鳥鳩雞鳶鳴鷗鴉鴇鴆鴣鶇鸕鴨鴦鴟鴝鴛鴕鷥鷙鴯鴰鵂鴿鸞鴻鵓鸝鵑鵠鵝鵒鵜鵡鵲鶓鵪鵯鵬鶉鶘鶚鶻鷀鶥鶩鷂鶼鶴鸚鷓鷚鷯鷦鷲鷸鷺鷹鸌鸛鹺麥麩麼黃黌黷黲黽黿鼉鼴齊齏齒齔齟齡齙齠齜齦齬齪齲齷龍龔龕龜";
+const S2T = new Map([...S2T_S].map((c, i) => [c, [...S2T_T][i]]));
+const TRAD = new Set([...S2T_T]);
+function zhNameOf(g) {
+  const names = [g.cjkName, ...(g.altNames || [])].filter(n => n && /[\u3400-\u9fff]/.test(n) && !/[\u3040-\u30ff]/.test(n));
+  if (!names.length) return "";
+  const score = n => [...n].reduce((a, c) => a + (TRAD.has(c) ? 1 : S2T.has(c) ? -1 : 0), 0);
+  const best = [...new Set(names)].sort((a, b) => score(b) - score(a))[0];
+  return [...best].map(c => S2T.get(c) || c).join("");
+}
 const range = (a, b, unit = "") => (!a && !b) ? "—" : (a && b && a !== b ? `${a}–${b}` : `${a || b}`) + unit;
 const timeOf = g => [g.minTime || g.time || g.maxTime || 0, g.maxTime || g.time || g.minTime || 0];
 const fmtDate = iso => {
@@ -292,8 +348,8 @@ function matches(g, skip = "") {
     if (![...S.weight].some(k => { const [, a, b] = WEIGHT.find(x => x[0] === k); return g.weight >= a && g.weight < b; })) return false;
   }
   if (S.ld.size && !S.ld.has(g.langDep)) return false;
-  if (skip !== "cats" && S.cats.size && ![...S.cats].every(c => g.categories?.includes(c))) return false;
-  if (skip !== "mechs" && S.mechs.size && ![...S.mechs].every(c => g.mechanics?.includes(c))) return false;
+  if (S.cats.size && ![...S.cats].every(c => g.groups.cats.has(c))) return false;
+  if (S.mechs.size && ![...S.mechs].every(c => g.groups.mechs.has(c))) return false;
   if (S.profile && S.pfilter !== "all") {
     const p = !!playedWith(S.profile, g.id);
     if (S.pfilter === "played" ? !p : p) return false;
@@ -339,6 +395,7 @@ function readHash() {
   S.players = set("p", ",", true);
   S.pmode = ["can", "rec", "best"].includes(p.get("pm")) ? p.get("pm") : "can";
   S.time = set("t"); S.weight = set("w"); S.ld = set("l", ",", true); S.cats = set("c", "|"); S.mechs = set("m", "|");
+  for (const k of ["cats", "mechs"]) for (const v of [...S[k]]) if (!GROUPS[k].some(x => x.id === v)) S[k].delete(v);
   S.exp = p.get("x") === "1";
   S.profile = p.get("f") || "";
   S.pfilter = ["played", "unplayed"].includes(p.get("pf")) ? p.get("pf") : "all";
@@ -374,16 +431,6 @@ function renderProfiles() {
 }
 
 // ------------------------------------------------------------ render: filters
-function facetCounts(key, skip) {
-  const c = new Map();
-  for (const g of DATA.games) {
-    if (!matches(g, skip)) continue;
-    for (const v of g[key] || []) c.set(v, (c.get(v) || 0) + 1);
-  }
-  // keep selected ones visible even at zero
-  for (const v of (skip === "cats" ? S.cats : S.mechs)) if (!c.has(v)) c.set(v, 0);
-  return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-}
 function chip(label, pressed, attrs, cls = "chip") {
   return `<button type="button" class="${cls}" aria-pressed="${pressed}" ${attrs}>${label}</button>`;
 }
@@ -408,14 +455,11 @@ function renderFilters() {
       `</div></section>`;
   }
   // categories & mechanics
-  for (const [key, skip, set, flag, label] of [["categories", "cats", S.cats, "showAllCats", "categories"], ["mechanics", "mechs", S.mechs, "showAllMechs", "mechanics"]]) {
-    const list = facetCounts(key, skip);
-    if (!list.length) continue;
-    const shown = ui[flag] ? list : list.slice(0, FACET_PREVIEW).concat(list.slice(FACET_PREVIEW).filter(([v]) => set.has(v)));
+  for (const [kind, label] of [["cats", "categories"], ["mechs", "mechanics"]]) {
+    const groups = GROUPS[kind].filter(x => S[kind].has(x.id) || DATA.games.some(g => g.groups[kind].has(x.id)));
+    if (!groups.length) continue;
     h += `<section class="fgroup"><h3>${t(label)}</h3><div class="chips">` +
-      shown.map(([v]) => chip(esc(v), set.has(v), `data-f="${skip}" data-v="${esc(v)}"`)).join("") + `</div>`;
-    if (list.length > FACET_PREVIEW) h += `<button type="button" class="linkish" data-more="${flag}">${ui[flag] ? t("showLess") : t("showAll", { n: list.length })}</button>`;
-    h += `</section>`;
+      groups.map(x => chip(esc(x[lang] || x.en), S[kind].has(x.id), `data-f="${kind}" data-v="${x.id}"`)).join("") + `</div></section>`;
   }
   // expansions
   if (editing) {
@@ -434,8 +478,8 @@ function activeFilterChips() {
   for (const k of S.time) out.push([t(k), "time", k]);
   for (const k of S.weight) out.push([t(k), "weight", k]);
   for (const n of S.ld) out.push([t("l" + n), "ld", n]);
-  for (const v of S.cats) out.push([esc(v), "cats", v]);
-  for (const v of S.mechs) out.push([esc(v), "mechs", v]);
+  for (const v of S.cats) out.push([esc(groupLabel("cats", v)), "cats", v]);
+  for (const v of S.mechs) out.push([esc(groupLabel("mechs", v)), "mechs", v]);
   return out;
 }
 
@@ -574,8 +618,8 @@ function openGame(id, fromPick = false, fromCard = null) {
       ${played}
       ${desc ? `<h3>${g.designers?.length ? esc(g.designers.join(", ")) : ""}</h3><p class="desc ${desc.length > 420 ? "clamp" : ""}" id="desc">${esc(desc)}</p>
         ${desc.length > 420 ? `<button type="button" class="linkish" data-desc>${t("more")}</button>` : ""}` : ""}
-      ${g.categories?.length ? `<h3>${t("categories")}</h3><div class="chips">${g.categories.map(c => chip(esc(c), S.cats.has(c), `data-jump="cats" data-v="${esc(c)}"`)).join("")}</div>` : ""}
-      ${g.mechanics?.length ? `<h3>${t("mechanics")}</h3><div class="chips">${g.mechanics.map(c => chip(esc(c), S.mechs.has(c), `data-jump="mechs" data-v="${esc(c)}"`)).join("")}</div>` : ""}
+      ${g.categories?.length ? `<h3>${t("categories")}</h3><div class="chips">${g.categories.map(c => `<span class="tag">${esc(c)}</span>`).join("")}</div>` : ""}
+      ${g.mechanics?.length ? `<h3>${t("mechanics")}</h3><div class="chips">${g.mechanics.map(c => `<span class="tag">${esc(c)}</span>`).join("")}</div>` : ""}
       ${exps.length ? `<h3>${t("expansionsOwned")}</h3><div class="minis">${exps.map(mini).join("")}</div>` : ""}
       ${bases.length ? `<h3>${t("baseGame")}</h3><div class="minis">${bases.map(mini).join("")}</div>` : ""}
       <div class="d-actions">
@@ -763,7 +807,6 @@ function bind() {
     else if (f === "cats") toggle(S.cats, v);
     else if (f === "mechs") toggle(S.mechs, v);
     else if (b.dataset.pm) S.pmode = b.dataset.pm;
-    else if (b.dataset.more) ui[b.dataset.more] = !ui[b.dataset.more];
     else return;
     update();
   });
@@ -840,6 +883,12 @@ async function boot() {
   for (const g of DATA.games) {
     const u = pics?.images?.[g.id];
     if (u) { g.image = u; g.thumb = u; }
+  }
+  for (const g of DATA.games) {
+    g.categories ||= []; g.mechanics ||= [];
+    if (!g.domains?.length) delete g.domains;   // no BGG game type: sort by categories instead
+    g.zhName = zhNameOf(g);
+    g.groups = { cats: new Set(GROUPS.cats.filter(x => x.test(g)).map(x => x.id)), mechs: new Set(GROUPS.mechs.filter(x => x.test(g)).map(x => x.id)) };
   }
   byId = new Map(DATA.games.map(g => [g.id, g]));
   loadProfiles(prof);
