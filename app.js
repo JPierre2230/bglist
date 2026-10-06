@@ -411,9 +411,6 @@ function renderStatic() {
   renderEditBtn();
   const title = t("titleDefault");
   $("#title").textContent = title; document.title = title;
-  const d = DATA.generated ? new Date(DATA.generated) : null;
-  const monthYear = d && !isNaN(d) ? (lang === "zh" ? `${d.getFullYear()}/${d.getMonth() + 1}` : `${d.getMonth() + 1}/${d.getFullYear()}`) : "";
-  $("#syncNote").textContent = DATA.source === "sample" ? t("sample") : monthYear ? t("updated", { when: monthYear }) : "";
   $("#sort").innerHTML = SORTS.map(k => `<option value="${k}" ${S.sort === k ? "selected" : ""}>${t("s_" + k)}</option>`).join("");
 }
 
@@ -434,6 +431,21 @@ function renderProfiles() {
 function chip(label, pressed, attrs, cls = "chip") {
   return `<button type="button" class="${cls}" aria-pressed="${pressed}" ${attrs}>${label}</button>`;
 }
+// Language, categories and mechanics stay folded until someone opens them.
+// A group with an active filter starts open, and a folded group shows how many are selected.
+const opened = new Set();
+const openActive = () => { for (const k of ["ld", "cats", "mechs"]) if (S[k].size) opened.add(k); };
+function fold(key, title, active, chipsHtml) {
+  const open = opened.has(key);
+  return `<section class="fgroup fold ${open ? "open" : ""}">
+    <button type="button" class="fold-head" data-fold="${key}" aria-expanded="${open}">
+      <span>${title}</span>${!open && active ? `<span class="fold-count">${active}</span>` : ""}
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="chips" ${open ? "" : "hidden"}>${chipsHtml}</div>
+  </section>`;
+}
+
 function renderFilters() {
   let h = "";
   // players
@@ -448,18 +460,14 @@ function renderFilters() {
   // weight
   h += `<section class="fgroup"><h3>${t("weight")}</h3><div class="chips">` +
     WEIGHT.map(([k]) => chip(t(k), S.weight.has(k), `data-f="weight" data-v="${k}"`)).join("") + `</div></section>`;
-  // language dependence
-  if (DATA.games.some(g => g.langDep)) {
-    h += `<section class="fgroup"><h3>${t("langDep")}</h3><div class="chips">` +
-      [1, 2, 3, 4, 5].map(n => chip(t("l" + n), S.ld.has(n), `data-f="ld" data-v="${n}"`)).join("") +
-      `</div></section>`;
-  }
+  // language requirement (folded until opened)
+  if (DATA.games.some(g => g.langDep))
+    h += fold("ld", t("langDep"), S.ld.size, [1, 2, 3, 4, 5].map(n => chip(t("l" + n), S.ld.has(n), `data-f="ld" data-v="${n}"`)).join(""));
   // categories & mechanics
   for (const [kind, label] of [["cats", "categories"], ["mechs", "mechanics"]]) {
     const groups = GROUPS[kind].filter(x => S[kind].has(x.id) || DATA.games.some(g => g.groups[kind].has(x.id)));
     if (!groups.length) continue;
-    h += `<section class="fgroup"><h3>${t(label)}</h3><div class="chips">` +
-      groups.map(x => chip(esc(x[lang] || x.en), S[kind].has(x.id), `data-f="${kind}" data-v="${x.id}"`)).join("") + `</div></section>`;
+    h += fold(kind, t(label), S[kind].size, groups.map(x => chip(esc(x[lang] || x.en), S[kind].has(x.id), `data-f="${kind}" data-v="${x.id}"`)).join(""));
   }
   // expansions
   if (editing) {
@@ -807,6 +815,7 @@ function bind() {
     else if (f === "cats") toggle(S.cats, v);
     else if (f === "mechs") toggle(S.mechs, v);
     else if (b.dataset.pm) S.pmode = b.dataset.pm;
+    else if (b.dataset.fold) { const k = b.dataset.fold; opened.has(k) ? opened.delete(k) : opened.add(k); renderFilters(); return; }
     else return;
     update();
   });
@@ -861,7 +870,7 @@ function bind() {
   pd.addEventListener("click", e => { if (e.target === pd || e.target.closest("[data-close]")) pd.close(); });
   profileEvents();
 
-  window.addEventListener("hashchange", () => { readHash(); $("#q").value = S.q; renderStatic(); update(); });
+  window.addEventListener("hashchange", () => { readHash(); openActive(); $("#q").value = S.q; renderStatic(); update(); });
 }
 
 // ------------------------------------------------------------ boot
@@ -894,6 +903,7 @@ async function boot() {
   loadProfiles(prof);
   if (S.profile && !profiles.some(p => p.id === S.profile)) S.profile = "";
   $("#q").value = S.q;
+  openActive();
   renderStatic(); bind(); editEvents(); update();
 }
 boot();
