@@ -414,16 +414,21 @@ function renderStatic() {
   $("#sort").innerHTML = SORTS.map(k => `<option value="${k}" ${S.sort === k ? "selected" : ""}>${t("s_" + k)}</option>`).join("");
 }
 
+// Friends are small player tokens. Every game shows until a token is picked;
+// the picked friend's name stays visible, others show their name on hover.
+const isLight = hex => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) * 299 + (n >> 8 & 255) * 587 + (n & 255) * 114) / 1000 > 170; };
 function renderProfiles() {
   const row = $("#profileRow");
   if (!profiles.length && !editing) { row.innerHTML = ""; return; }
-  let h = `<button class="token everyone" type="button" aria-pressed="${!S.profile}" data-prof="">${meeple("currentColor", "none")}${t("everyone")}</button>`;
-  for (const p of profiles) h += `<button class="token" type="button" aria-pressed="${S.profile === p.id}" data-prof="${esc(p.id)}">${meeple(p.color)}${esc(p.name)}</button>`;
-  if (editing) h += `<button class="token add" type="button" id="editProfiles">${profiles.length ? t("editFriends") : "+ " + t("addFriend")}</button>`;
-  if (S.profile) {
-    h += `<span class="profile-mode" role="group">` + ["all", "played", "unplayed"].map(k =>
+  let h = profiles.map(p => {
+    const on = S.profile === p.id;
+    return `<button class="tk ${on ? "on" : ""}" type="button" aria-pressed="${on}" data-prof="${esc(p.id)}" style="--p:${esc(p.color)}" aria-label="${esc(p.name)}">
+      <span class="coin">${meeple(isLight(p.color) ? "#2a2257" : "#fff", "rgba(0,0,0,.2)")}</span><span class="nm">${esc(p.name)}</span></button>`;
+  }).join("");
+  if (editing) h += `<button class="tk add" type="button" id="editProfiles" aria-label="${t(profiles.length ? "editFriends" : "addFriend")}">
+      <span class="coin">${profiles.length ? "✎" : "+"}</span><span class="nm">${t(profiles.length ? "editFriends" : "addFriend")}</span></button>`;
+  if (S.profile) h += `<span class="pf-switch" role="group">` + ["played", "unplayed"].map(k =>
       `<button type="button" aria-pressed="${S.pfilter === k}" data-pf="${k}">${t(k)}</button>`).join("") + `</span>`;
-  }
   row.innerHTML = h;
 }
 
@@ -446,12 +451,34 @@ function fold(key, title, active, chipsHtml) {
   </section>`;
 }
 
+// "3–4 · Best" style summary beside the heading
+function playerSummary() {
+  if (!S.players.size) return "";
+  const ns = [...S.players].sort((a, b) => a - b), parts = [];
+  for (let i = 0; i < ns.length; i++) {
+    let j = i; while (j + 1 < ns.length && ns[j + 1] === ns[j] + 1) j++;
+    const lab = n => n === 8 ? "8+" : n;
+    parts.push(i === j ? lab(ns[i]) : `${lab(ns[i])}–${lab(ns[j])}`); i = j;
+  }
+  return `<em>${parts.join(", ")}</em>`;
+}
+// the light behind Supports / Recommended / Best glides to the chosen option
+let slidePos = null;
+function placeSlider() {
+  const box = $("#filterBody .pslide"), on = box?.querySelector('[aria-pressed="true"]'), pill = box?.querySelector("i");
+  if (!on || !pill) return;
+  const to = { left: on.offsetLeft + "px", width: on.offsetWidth + "px" };
+  if (slidePos && (slidePos.left !== to.left || slidePos.width !== to.width) && !reduceMotion.matches)
+    pill.animate([slidePos, to], { duration: 220, easing: "cubic-bezier(.3,.7,.2,1)" });
+  Object.assign(pill.style, to); slidePos = to;
+}
+
 function renderFilters() {
   let h = "";
   // players
-  h += `<section class="fgroup"><h3>${t("players")}</h3><div class="chips">`;
-  for (let n = 1; n <= 8; n++) h += chip(n === 8 ? "8+" : n, S.players.has(n), `data-f="players" data-v="${n}"`, "chip num");
-  h += `</div><div class="seg" role="group">` + ["can", "rec", "best"].map(k =>
+  h += `<section class="fgroup"><h3 class="h-sum"><span>${t("players")}</span>${playerSummary()}</h3><div class="ptrack" role="group" aria-label="${t("players")}">`;
+  for (let n = 1; n <= 8; n++) h += `<button type="button" aria-pressed="${S.players.has(n)}" data-f="players" data-v="${n}">${n === 8 ? "8+" : n}</button>`;
+  h += `</div><div class="pslide" role="group"><i></i>` + ["can", "rec", "best"].map(k =>
     `<button type="button" aria-pressed="${S.pmode === k}" data-pm="${k}">${t(k)}</button>`).join("") +
     `</div></section>`;
   // time
@@ -477,6 +504,7 @@ function renderFilters() {
     h += `<a class="side-link" href="images.html">🖼️ ${t("picsLink")}</a></section>`;
   }
   $("#filterBody").innerHTML = h;
+  placeSlider();
 }
 
 function activeFilterChips() {
@@ -798,9 +826,9 @@ function bind() {
     if (b.id === "editProfiles") { if (!profiles.length) { profiles.push({ id: "p" + Date.now().toString(36), name: t("newFriend"), color: COLORS[0], bggNames: [], played: [] }); saveProfiles(); update(); } openProfiles(); return; }
     if (b.dataset.pf) { S.pfilter = b.dataset.pf; update(); return; }
     if ("prof" in b.dataset) {
-      const changed = S.profile !== b.dataset.prof;
-      S.profile = b.dataset.prof;
-      S.pfilter = !S.profile ? "all" : changed ? "played" : S.pfilter;
+      // tap a friend to show your games together; tap again to go back to every game
+      if (S.profile === b.dataset.prof) { S.profile = ""; S.pfilter = "all"; }
+      else { S.profile = b.dataset.prof; S.pfilter = "played"; }
       update();
     }
   });
@@ -902,6 +930,7 @@ async function boot() {
   byId = new Map(DATA.games.map(g => [g.id, g]));
   loadProfiles(prof);
   if (S.profile && !profiles.some(p => p.id === S.profile)) S.profile = "";
+  S.pfilter = !S.profile ? "all" : S.pfilter === "unplayed" ? "unplayed" : "played";
   $("#q").value = S.q;
   openActive();
   renderStatic(); bind(); editEvents(); update();

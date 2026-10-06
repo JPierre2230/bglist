@@ -358,3 +358,53 @@ footer { text-align: center; padding: 6px 0 30px; }
 .fold.open .fold-head { margin-bottom: 6px; }
 .fold:not(.open) { padding-bottom: 9px; }
 .fold-count { background: var(--accent); color: var(--accent-ink); border-radius: 999px; font-size: 11px; letter-spacing: 0; padding: 0 7px; line-height: 1.6; }
+
+/* ---------- number of players: segmented track ---------- */
+.h-sum { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.h-sum > span { white-space: nowrap; }
+.h-sum em { font-style: normal; text-transform: none; letter-spacing: 0; color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ptrack {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 3px; border-radius: 11px;
+  background: rgba(0, 0, 0, .28); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .06);
+}
+.ptrack button {
+  border: 0; background: transparent; color: var(--ink-soft); height: 30px; border-radius: 8px; padding: 0;
+  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; transition: color .15s, background .15s, box-shadow .15s;
+}
+.ptrack button:hover { color: var(--ink); background: rgba(255, 255, 255, .07); }
+.ptrack button[aria-pressed="true"] {
+  color: #fff; background: linear-gradient(180deg, #ff8a6b, #ff5d3a);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18), 0 3px 12px rgba(255, 93, 58, .45);
+}
+.pslide { position: relative; display: flex; margin-top: 8px; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, .22); }
+.pslide i { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0; border-radius: 999px; background: rgba(255, 255, 255, .13); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); pointer-events: none; }
+.pslide button { position: relative; flex: 1 1 auto; border: 0; background: none; padding: 3px 4px; border-radius: 999px; color: var(--ink-soft); font-size: 11.5px; white-space: nowrap; }
+.pslide button:hover { color: var(--ink); }
+.pslide button[aria-pressed="true"] { color: #fff; font-weight: 700; }
+
+/* ---------- friends: small player tokens ---------- */
+.profile-row { gap: 4px; min-height: 32px; }
+.tk {
+  flex: none; border: 0; background: none; padding: 2px; display: inline-flex; align-items: center; border-radius: 999px;
+  color: #fff; font-size: 13px; font-weight: 600; transition: background .2s, padding .2s;
+}
+.tk .coin {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; opacity: .85;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--p) 55%, #fff) 0, var(--p) 45%, color-mix(in srgb, var(--p) 55%, #000) 100%);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .35), 0 0 0 1.5px rgba(255, 255, 255, .14), 0 3px 8px rgba(0, 0, 0, .4);
+  transition: box-shadow .2s, transform .2s, opacity .2s;
+}
+.tk .coin svg { width: 16px; height: 16px; }
+.tk .nm { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width .25s, opacity .2s, margin .25s; }
+.tk:hover, .tk:focus-visible { background: rgba(255, 255, 255, .07); padding-right: 11px; }
+.tk:hover .coin, .tk:focus-visible .coin { opacity: 1; transform: translateY(-1px); }
+.tk:hover .nm, .tk:focus-visible .nm { max-width: 140px; opacity: .85; margin-left: 7px; }
+.tk.on { background: rgba(255, 255, 255, .12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16); padding-right: 11px; }
+.tk.on .coin { opacity: 1; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .35), 0 0 0 1.5px #fff, 0 0 12px color-mix(in srgb, var(--p) 60%, transparent); }
+.tk.on .nm { max-width: 140px; opacity: 1; margin-left: 7px; }
+.tk.add .coin { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .35); color: var(--head-soft); font-size: 13px; opacity: 1; }
+.pf-switch { flex: none; display: inline-flex; margin-left: 8px; padding: 2px; border-radius: 999px; background: rgba(0, 0, 0, .28); box-shadow: 0 0 0 1px rgba(255, 255, 255, .08); }
+.pf-switch button { border: 0; background: none; color: var(--head-soft); font-size: 12px; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.pf-switch button[aria-pressed="true"] { background: rgba(255, 255, 255, .14); color: #fff; font-weight: 700; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16); }
+@media (hover: none) { .tk:hover:not(.on) { background: none; padding-right: 2px; } .tk:hover:not(.on) .nm { max-width: 0; opacity: 0; margin: 0; } }
+@media (max-width: 900px) { .profile-row { flex-wrap: wrap; overflow: visible; row-gap: 8px; } }
