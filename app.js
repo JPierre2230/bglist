@@ -56,7 +56,7 @@ const T = {
     ghErrNet: "Couldn't reach GitHub. Your changes are kept in this browser and will save next time.",
     pSavedGh: "Changes save to your website automatically.", pLocalOnly: "Changes are only saved in this browser. Connect GitHub to save them to your website for every device.",
     pwSavedGh: "Your password is saved to your website and now works on every device.",
-    rolling: "Rolling…",
+    rolling: "Rolling…", fPlayers: "Players", fLang: "Language", fTools: "Edit tools",
     edit: "Edit", editing: "Editing", editTitle: "Edit mode", editIntro: "Enter the password to edit friends, played games and pictures.",
     pw: "Password", pw2: "Type it again", wrongPw: "That password isn't right.", unlock: "Unlock",
     setTitle: "Create an edit password", setIntro: "Choose a password. The editing options on this site only appear after it's entered.",
@@ -117,7 +117,7 @@ const T = {
     ghErrNet: "無法連線到 GitHub。變更已保存在這個瀏覽器，下次會再儲存。",
     pSavedGh: "變更會自動儲存到網站。", pLocalOnly: "變更只存在這個瀏覽器。連結 GitHub 即可儲存到網站，所有裝置都看得到。",
     pwSavedGh: "密碼已儲存到網站，所有裝置都能使用。",
-    rolling: "抽選中…",
+    rolling: "抽選中…", fPlayers: "人數", fLang: "語言", fTools: "編輯工具",
     edit: "編輯", editing: "編輯中", editTitle: "編輯模式", editIntro: "輸入密碼以編輯朋友、遊玩紀錄和圖片。",
     pw: "密碼", pw2: "再輸入一次", wrongPw: "密碼不正確。", unlock: "解鎖",
     setTitle: "建立編輯密碼", setIntro: "設定一組密碼。輸入密碼後，網站上的編輯選項才會出現。",
@@ -647,48 +647,82 @@ function playerSummary() {
   return `<em>${parts.join(", ")}</em>`;
 }
 // the light behind Supports / Recommended / Best glides to the chosen option
-let slidePos = null;
+const slidePos = {};
 function placeSlider() {
-  const box = $("#filterBody .pslide"), on = box?.querySelector('[aria-pressed="true"]'), pill = box?.querySelector("i");
-  if (!on || !pill) return;
-  const to = { left: on.offsetLeft + "px", width: on.offsetWidth + "px" };
-  if (slidePos && (slidePos.left !== to.left || slidePos.width !== to.width) && !reduceMotion.matches)
-    pill.animate([slidePos, to], { duration: 220, easing: "cubic-bezier(.3,.7,.2,1)" });
-  Object.assign(pill.style, to); slidePos = to;
+  for (const [id, box] of [["body", $("#filterBody .pslide")], ["bar", $("#fbar .pslide")]]) {
+    const on = box?.querySelector('[aria-pressed="true"]'), pill = box?.querySelector("i");
+    if (!on || !pill || !on.offsetWidth) continue;   // hidden right now (closed dropdown, or the other layout)
+    const to = { left: on.offsetLeft + "px", width: on.offsetWidth + "px" }, from = slidePos[id];
+    if (from && (from.left !== to.left || from.width !== to.width) && !reduceMotion.matches)
+      pill.animate([from, to], { duration: 220, easing: "cubic-bezier(.3,.7,.2,1)" });
+    Object.assign(pill.style, to); slidePos[id] = to;
+  }
 }
 
+// The same filter pieces go to two places: the slide-up panel on phones (as before)
+// and, on computers, a row of pill buttons whose options drop down on hover or click.
+let openDrop = "", pinned = false;
+const CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 function renderFilters() {
-  let h = "";
+  const parts = [];
   // players
-  h += `<section class="fgroup"><h3 class="h-sum"><span>${t("players")}</span>${playerSummary()}</h3><div class="ptrack" role="group" aria-label="${t("players")}">`;
-  for (let n = 1; n <= 8; n++) h += `<button type="button" aria-pressed="${S.players.has(n)}" data-f="players" data-v="${n}">${n === 8 ? "8+" : n}</button>`;
-  h += `</div><div class="pslide" role="group"><i></i>` + ["can", "rec", "best"].map(k =>
-    `<button type="button" aria-pressed="${S.pmode === k}" data-pm="${k}">${t(k)}</button>`).join("") +
-    `</div></section>`;
-  // time
-  h += `<section class="fgroup"><h3>${t("time")}</h3><div class="chips">` +
-    TIME.map(([k]) => chip(t(k), S.time.has(k), `data-f="time" data-v="${k}"`)).join("") + `</div></section>`;
-  // weight
-  h += `<section class="fgroup"><h3>${t("weight")}</h3><div class="chips">` +
-    WEIGHT.map(([k]) => chip(t(k), S.weight.has(k), `data-f="weight" data-v="${k}"`)).join("") + `</div></section>`;
-  // language requirement (folded until opened)
-  if (DATA.games.some(g => g.langDep))
-    h += fold("ld", t("langDep"), S.ld.size, [1, 2, 3, 4, 5].map(n => chip(t("l" + n), S.ld.has(n), `data-f="ld" data-v="${n}"`)).join(""));
-  // categories & mechanics
+  const pBody = `<div class="ptrack" role="group" aria-label="${t("players")}">` +
+    Array.from({ length: 8 }, (_, i) => i + 1).map(n => `<button type="button" aria-pressed="${S.players.has(n)}" data-f="players" data-v="${n}">${n === 8 ? "8+" : n}</button>`).join("") +
+    `</div><div class="pslide" role="group"><i></i>` + ["can", "rec", "best"].map(k =>
+    `<button type="button" aria-pressed="${S.pmode === k}" data-pm="${k}">${t(k)}</button>`).join("") + `</div>`;
+  const pSum = S.players.size ? `<em>${playerSummary().replace(/<\/?em>/g, "")}${S.pmode !== "can" ? " · " + t(S.pmode) : ""}</em>` : "";
+  parts.push({ key: "players", label: t("fPlayers"), sum: pSum, body: pBody, cls: "pp",
+    mobile: `<section class="fgroup"><h3 class="h-sum"><span>${t("players")}</span>${playerSummary()}</h3>${pBody}</section>` });
+  // time and complexity
+  for (const [key, label, list, set] of [["time", "time", TIME, S.time], ["weight", "weight", WEIGHT, S.weight]]) {
+    const body = `<div class="chips">` + list.map(([k]) => chip(t(k), set.has(k), `data-f="${key}" data-v="${k}"`)).join("") + `</div>`;
+    parts.push({ key, label: t(label), n: set.size, body, mobile: `<section class="fgroup"><h3>${t(label)}</h3>${body}</section>` });
+  }
+  // language requirement, categories, mechanics (folded on phones until opened)
+  if (DATA.games.some(g => g.langDep)) {
+    const c = [1, 2, 3, 4, 5].map(n => chip(t("l" + n), S.ld.has(n), `data-f="ld" data-v="${n}"`)).join("");
+    parts.push({ key: "ld", label: t("fLang"), n: S.ld.size, body: `<div class="chips">${c}</div>`, mobile: fold("ld", t("langDep"), S.ld.size, c) });
+  }
   for (const [kind, label] of [["cats", "categories"], ["mechs", "mechanics"]]) {
     const groups = GROUPS[kind].filter(x => S[kind].has(x.id) || DATA.games.some(g => g.groups[kind].has(x.id)));
     if (!groups.length) continue;
-    h += fold(kind, t(label), S[kind].size, groups.map(x => chip(esc(x[lang] || x.en), S[kind].has(x.id), `data-f="${kind}" data-v="${x.id}"`)).join(""));
+    const c = groups.map(x => chip(esc(x[lang] || x.en), S[kind].has(x.id), `data-f="${kind}" data-v="${x.id}"`)).join("");
+    parts.push({ key: kind, label: t(label), n: S[kind].size, body: `<div class="chips">${c}</div>`, cls: "wide", mobile: fold(kind, t(label), S[kind].size, c) });
   }
-  // expansions
+  // edit-mode extras
   if (editing) {
-    h += `<section class="fgroup edit-tools">`;
+    let tools = "";
     if (DATA.games.some(g => g.type === "expansion"))
-      h += `<label class="switch"><input type="checkbox" id="expToggle" ${S.exp ? "checked" : ""}> ${t("includeExp")}</label>`;
-    h += `<a class="side-link" href="images.html">🖼️ ${t("picsLink")}</a></section>`;
+      tools += `<label class="switch"><input type="checkbox" data-exp ${S.exp ? "checked" : ""}> ${t("includeExp")}</label>`;
+    tools += `<a class="side-link" href="images.html">🖼️ ${t("picsLink")}</a>`;
+    parts.push({ key: "tools", label: "✎ " + t("fTools"), body: `<div class="edit-tools">${tools}</div>`, mobile: `<section class="fgroup edit-tools">${tools}</section>` });
   }
-  $("#filterBody").innerHTML = h;
-  placeSlider();
+  $("#filterBody").innerHTML = parts.map(x => x.mobile).join("");
+  if (openDrop && !parts.some(x => x.key === openDrop)) openDrop = "";
+  $("#fbar").innerHTML = parts.map(x => {
+    const on = x.key === openDrop;
+    return `<div class="fdrop${on ? " open" : ""}${x.sum || x.n ? " active" : ""}" data-drop="${x.key}">
+      <button class="fbtn" type="button" aria-expanded="${on}">${x.label}${x.sum || ""}${x.n ? `<span class="cnt">${x.n}</span>` : ""}${CHEV}</button>
+      <div class="fpanel ${x.cls || ""}">${x.body}</div></div>`;
+  }).join("");
+  placeSlider(); fitPanel();
+}
+// open one dropdown (or none); keep it on screen
+function setDrop(key, pin = false) {
+  const was = openDrop;
+  openDrop = key; pinned = !!key && pin;
+  document.querySelectorAll("#fbar .fdrop").forEach(d => {
+    const on = d.dataset.drop === key;
+    d.classList.toggle("open", on); d.querySelector(".fbtn").setAttribute("aria-expanded", on);
+    // the drop-in animation plays only when a dropdown opens, not when its options are redrawn
+    if (on && was !== key) { d.classList.add("opening"); setTimeout(() => d.classList.remove("opening"), 200); }
+  });
+  if (key) { fitPanel(); placeSlider(); }
+}
+function fitPanel() {
+  const panel = $("#fbar .fdrop.open .fpanel"); if (!panel) return;
+  panel.style.left = ""; panel.style.right = "";
+  if (panel.getBoundingClientRect().right > innerWidth - 12) { panel.style.left = "auto"; panel.style.right = "0"; }
 }
 
 function activeFilterChips() {
@@ -1135,8 +1169,8 @@ function bind() {
     }
   });
 
-  $("#filterBody").addEventListener("click", e => {
-    const b = e.target.closest("button"); if (!b) return;
+  const onFilterClick = e => {
+    const b = e.target.closest("button"); if (!b || b.classList.contains("fbtn")) return;
     const f = b.dataset.f, v = b.dataset.v;
     if (f === "players") toggle(S.players, +v);
     else if (f === "time") toggle(S.time, v);
@@ -1148,8 +1182,31 @@ function bind() {
     else if (b.dataset.fold) { const k = b.dataset.fold; opened.has(k) ? opened.delete(k) : opened.add(k); renderFilters(); return; }
     else return;
     update();
+  };
+  const onFilterChange = e => { if (e.target.matches("[data-exp]")) { S.exp = e.target.checked; update(); } };
+  for (const box of [$("#filterBody"), $("#fbar")]) { box.addEventListener("click", onFilterClick); box.addEventListener("change", onFilterChange); }
+
+  // pill bar: hover opens a dropdown (and switches between them); a click keeps it open until clicked again
+  const fbar = $("#fbar");
+  let closeT;
+  fbar.addEventListener("pointerover", e => {
+    if (e.pointerType === "touch") return;
+    clearTimeout(closeT);
+    const d = e.target.closest(".fdrop");
+    if (d && d.dataset.drop !== openDrop) setDrop(d.dataset.drop);
   });
-  $("#filterBody").addEventListener("change", e => { if (e.target.id === "expToggle") { S.exp = e.target.checked; update(); } });
+  fbar.addEventListener("pointerleave", e => {
+    if (e.pointerType === "touch" || pinned) return;
+    closeT = setTimeout(() => setDrop(""), 320);
+  });
+  fbar.addEventListener("click", e => {
+    const btn = e.target.closest(".fbtn"); if (!btn) return;
+    const k = btn.closest(".fdrop").dataset.drop;
+    if (openDrop === k && pinned) setDrop(""); else setDrop(k, true);
+  });
+  document.addEventListener("pointerdown", e => { if (openDrop && !e.target.closest("#fbar")) setDrop(""); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && openDrop) setDrop(""); });
+  addEventListener("resize", () => fitPanel());
 
   document.addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;

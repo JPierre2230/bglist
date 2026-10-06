@@ -518,3 +518,40 @@ footer { text-align: center; padding: 6px 0 30px; }
 .p-body input[type=text] { width: 100%; border: 1.5px solid var(--line); background: var(--tile); border-radius: 8px; padding: 7px 10px; }
 .btn:disabled { opacity: .6; cursor: default; }
 .toast[popover] { inset: auto auto calc(22px + env(safe-area-inset-bottom, 0px)) 50%; margin: 0; border: 0; overflow: visible; color: #fff; }
+
+/* ---------- computers: filters as a row of pill buttons with drop-down options ---------- */
+.fbar { display: none; }
+@media (min-width: 901px) {
+  .layout { grid-template-columns: 1fr; }
+  .layout > .filters { display: none; }
+  .toolbar { position: relative; z-index: 15; align-items: flex-start; margin-bottom: 12px; }
+  .fbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; }
+  .fdrop { position: relative; }
+  .fbtn {
+    display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 12px 0 15px; border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, .14); color: var(--ink); font-size: 13.5px; font-weight: 600; white-space: nowrap;
+    background: color-mix(in srgb, var(--tile) 72%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    transition: border-color .15s, background .15s;
+  }
+  .fbtn:hover, .fdrop.open .fbtn { border-color: rgba(255, 255, 255, .34); background: color-mix(in srgb, var(--tile) 92%, transparent); }
+  .fdrop.active .fbtn { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+  .fbtn em { font-style: normal; color: var(--accent); font-weight: 700; }
+  .fbtn .cnt { background: var(--accent); color: #fff; border-radius: 999px; font-size: 11px; padding: 0 7px; line-height: 1.6; }
+  .fbtn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .7; transition: transform .2s; }
+  .fdrop.open .fbtn svg { transform: rotate(180deg); }
+  .fpanel {
+    display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: max-content; max-width: 360px; padding: 14px;
+    border-radius: 14px; background: color-mix(in srgb, var(--tile) 95%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .1);
+  }
+  .fpanel::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }   /* bridge so the pointer can cross the gap */
+  .fdrop.open .fpanel { display: block; }
+  .fdrop.opening .fpanel { animation: drop-in .16s ease-out; }
+  @keyframes drop-in { from { opacity: 0; transform: translateY(-4px); } }
+  .fpanel.pp { width: 300px; }
+  .fpanel.wide { width: 420px; max-width: 420px; }
+  .fpanel .chips { gap: 6px; }
+  .fpanel .chip { font-size: 13px; padding: 2px 11px; }
+  .fpanel .edit-tools { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+}
+@media (max-width: 900px) { .fbar { display: none !important; } }
