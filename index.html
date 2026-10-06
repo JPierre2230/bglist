@@ -4,11 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Board Game Library</title>
+<meta name="description" content="Our board game collection: filter by players, play time, complexity and more, or let the dice pick tonight's game.">
+<!-- link previews (LINE, Messenger, WhatsApp, Discord…). If the site moves to another address, change SITE in these lines. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Board Game Library">
+<meta property="og:title" content="Board Game Library">
+<meta property="og:description" content="Our shelf, ready for game night. Filter by players, play time and complexity, or let the dice pick.">
+<meta property="og:url" content="https://jp2230804.github.io/bglist/">
+<meta property="og:image" content="https://jp2230804.github.io/bglist/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Board Game Library">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jp2230804.github.io/bglist/og-image.jpg">
+<meta name="theme-color" content="#1e1840">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a2257'/%3E%3Cpath d='M40 13v24a12 12 0 0 1-24 0' fill='none' stroke='%23ffc23d' stroke-width='9' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -30,6 +47,18 @@
     <div class="profile-row" id="profileRow" role="group" aria-label="Friends"></div>
   </div>
 </header>
+
+<!-- slim bar that slides in once the big header has scrolled away -->
+<div class="minibar" id="minibar" inert>
+  <div class="minibar-inner">
+    <button class="mini-title" id="toTop" type="button" data-i18n="titleDefault">Board Game Library</button>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+      <input id="q2" type="search" autocomplete="off" data-i18n-ph="searchPh" placeholder="Search by name">
+    </label>
+    <button class="pick" id="pickBtn2" type="button"><span aria-hidden="true">🎲</span> <span class="pick-word" data-i18n="pick">Random</span></button>
+  </div>
+</div>
 
 <div class="layout">
   <aside class="filters" id="filters" aria-label="Filters">
@@ -65,7 +94,12 @@
 <dialog id="gameDialog" class="dialog"><div id="gameBody"></div></dialog>
 <dialog id="profileDialog" class="dialog narrow"><div id="profileBody"></div></dialog>
 <dialog id="editDialog" class="dialog narrow"><div id="editBody"></div></dialog>
+<dialog id="rollDialog" class="roll" aria-label="Random">
+  <div class="reel-wrap"><div class="reel" id="reel"></div><div class="reel-frame" aria-hidden="true"></div></div>
+  <p class="roll-label" id="rollLabel" aria-live="polite"></p>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" popover="manual"></div>
 
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

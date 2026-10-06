@@ -41,6 +41,22 @@ const T = {
     langDep: "Language Requirement",
     l1: "None", l2: "Minimal", l3: "Moderate", l4: "High", l5: "Essential",
     copies: "Copies", addPic: "Add a picture", changePic: "Change picture", picsLink: "Add box pictures",
+    ghConnect: "Connect GitHub", ghConnectedTo: "Saving to {repo}", ghDisconnect: "Disconnect",
+    ghTitle: "Save straight to your website",
+    ghIntro: "Connect this browser to your GitHub repository once, and changes to friends save to your website automatically, for every device.",
+    ghStep1: 'On GitHub, create a fine-grained token at <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.',
+    ghStep2: "Under <b>Repository access</b>, choose <b>Only select repositories</b> and pick your website's repository.",
+    ghStep3: "Under <b>Permissions</b>, add <b>Contents</b> and set it to <b>Read and write</b>. Generate the token and copy it.",
+    ghRepo: "Repository (owner/name)", ghToken: "Token", ghBtn: "Connect", ghChecking: "Checking…",
+    ghKeep: "The token is kept only in this browser. Connect only your own devices.",
+    ghSaving: "Saving to your website…", ghSaved: "Saved to your website ✓", ghOk: "Connected. Changes now save to your website ✓",
+    ghErrToken: "GitHub didn't accept this token. Check it was copied in full and hasn't expired.",
+    ghErrRepo: "This token can't see that repository. Check the name, and that the token was given access to it.",
+    ghErrWrite: "This token can read but not save. Give it Contents: Read and write.",
+    ghErrNet: "Couldn't reach GitHub. Your changes are kept in this browser and will save next time.",
+    pSavedGh: "Changes save to your website automatically.", pLocalOnly: "Changes are only saved in this browser. Connect GitHub to save them to your website for every device.",
+    pwSavedGh: "Your password is saved to your website and now works on every device.",
+    rolling: "Rolling…",
     edit: "Edit", editing: "Editing", editTitle: "Edit mode", editIntro: "Enter the password to edit friends, played games and pictures.",
     pw: "Password", pw2: "Type it again", wrongPw: "That password isn't right.", unlock: "Unlock",
     setTitle: "Create an edit password", setIntro: "Choose a password. The editing options on this site only appear after it's entered.",
@@ -86,6 +102,22 @@ const T = {
     langDep: "語言需求",
     l1: "無", l2: "少量", l3: "中等", l4: "高", l5: "必要",
     copies: "份數", addPic: "加入圖片", changePic: "更換圖片", picsLink: "加入封面圖片",
+    ghConnect: "連結 GitHub", ghConnectedTo: "儲存至 {repo}", ghDisconnect: "取消連結",
+    ghTitle: "直接儲存到你的網站",
+    ghIntro: "只要讓這個瀏覽器連結一次 GitHub repository，朋友的變更就會自動儲存到網站，所有裝置都看得到。",
+    ghStep1: '在 GitHub 建立 fine-grained token：<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>。',
+    ghStep2: "在 <b>Repository access</b> 選 <b>Only select repositories</b>，並選擇你網站的 repository。",
+    ghStep3: "在 <b>Permissions</b> 加入 <b>Contents</b>，設為 <b>Read and write</b>。產生 token 後複製。",
+    ghRepo: "Repository（擁有者/名稱）", ghToken: "Token", ghBtn: "連結", ghChecking: "檢查中…",
+    ghKeep: "Token 只會存在這個瀏覽器。請只在自己的裝置上連結。",
+    ghSaving: "正在儲存到網站…", ghSaved: "已儲存到網站 ✓", ghOk: "已連結。變更會直接儲存到網站 ✓",
+    ghErrToken: "GitHub 不接受這個 token。請確認完整複製且尚未過期。",
+    ghErrRepo: "這個 token 看不到該 repository。請確認名稱，以及 token 已取得存取權。",
+    ghErrWrite: "這個 token 只能讀取無法儲存。請將 Contents 設為 Read and write。",
+    ghErrNet: "無法連線到 GitHub。變更已保存在這個瀏覽器，下次會再儲存。",
+    pSavedGh: "變更會自動儲存到網站。", pLocalOnly: "變更只存在這個瀏覽器。連結 GitHub 即可儲存到網站，所有裝置都看得到。",
+    pwSavedGh: "密碼已儲存到網站，所有裝置都能使用。",
+    rolling: "抽選中…",
     edit: "編輯", editing: "編輯中", editTitle: "編輯模式", editIntro: "輸入密碼以編輯朋友、遊玩紀錄和圖片。",
     pw: "密碼", pw2: "再輸入一次", wrongPw: "密碼不正確。", unlock: "解鎖",
     setTitle: "建立編輯密碼", setIntro: "設定一組密碼。輸入密碼後，網站上的編輯選項才會出現。",
@@ -191,16 +223,36 @@ function openEdit(view) {
   if (view === "saved") h += `<h2>${t("savedTitle")}</h2><p>${t("savedBody")}</p>
       <div class="p-foot"><button class="btn" type="button" data-dlconfig>${t("dlConfig")}</button><span style="flex:1"></span><button class="btn light" type="button" data-close>${t("close")}</button></div>`;
   if (view === "on") h += `<h2>${t("editOnTitle")}</h2><p>${t("editOnBody")}</p>
+      ${ghStatus()}
       <div class="p-foot"><button class="btn" type="button" data-stop>${t("stopEdit")}</button><button class="btn light" type="button" data-changepw>${t("changePw")}</button><span style="flex:1"></span><button class="btn light" type="button" data-close>${t("close")}</button></div>`;
+  if (view === "savedgh") h += `<h2>${t("ghSaved")}</h2><p>${t("pwSavedGh")}</p>
+      <div class="p-foot"><span style="flex:1"></span><button class="btn" type="button" data-close>${t("close")}</button></div>`;
+  if (view === "github") h += `<h2>${t("ghTitle")}</h2><p>${t("ghIntro")}</p>
+      <ol class="gh-steps"><li>${t("ghStep1")}</li><li>${t("ghStep2")}</li><li>${t("ghStep3")}</li></ol>
+      <label class="field"><small>${t("ghRepo")}</small><input type="text" name="repo" value="${esc(GH?.repo || guessRepo())}" placeholder="username/bglist" autocapitalize="off" spellcheck="false" required></label>
+      <label class="field"><small>${t("ghToken")}</small><input type="password" name="token" autocomplete="off" placeholder="github_pat_…" required></label>
+      <p class="hint-line">${t("ghKeep")}</p>
+      <p class="err" hidden></p><div class="p-foot"><button class="btn light" type="button" data-back>←</button><span style="flex:1"></span><button class="btn" type="submit">${t("ghBtn")}</button></div>`;
   $("#editBody").innerHTML = h + "</form>";
   const d = $("#editDialog"); if (!d.open) d.showModal();
-  d.querySelector("input")?.focus();
+  (view === "github" ? d.querySelector('input[name="token"]') : d.querySelector("input"))?.focus();
+}
+function ghStatus() {
+  return GH
+    ? `<div class="gh-status on"><span>● ${t("ghConnectedTo", { repo: esc(GH.repo) })}</span><button type="button" class="linkish" data-ghoff>${t("ghDisconnect")}</button></div>`
+    : `<div class="gh-status"><span>${t("pLocalOnly")}</span><button type="button" class="btn" data-gh>${t("ghConnect")}</button></div>`;
 }
 function editEvents() {
   const d = $("#editDialog");
   d.addEventListener("submit", async e => {
     e.preventDefault();
     const f = e.target, err = f.querySelector(".err"), show = m => { err.textContent = m; err.hidden = false; };
+    if (f.dataset.view === "github") {
+      const btn = f.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = t("ghChecking");
+      try { await connectGithub(f.repo.value, f.token.value); toast(t("ghOk"), "ok", 3500); d.close(); update(); }
+      catch (e2) { show(e2.message); btn.disabled = false; btn.textContent = t("ghBtn"); }
+      return;
+    }
     const pw = f.pw.value;
     if (f.dataset.view === "unlock") {
       const h = await sha(pw);
@@ -211,13 +263,21 @@ function editEvents() {
       if (pw !== f.pw2.value) return show(t("mismatch"));
       const h = await sha(pw);
       CONFIG = { ...CONFIG, editPasswordHash: h };
-      setEditing(true, h); update(); openEdit("saved");
+      setEditing(true, h); update();
+      if (GH) {
+        try { await ghWrite("data/config.json", JSON.stringify(CONFIG, null, 2) + "\n", "Update edit password"); return openEdit("savedgh"); }
+        catch (e2) { toast(e2.message, "err", 6000); }
+      }
+      openEdit("saved");
     }
   });
   d.addEventListener("click", e => {
     if (e.target === d || e.target.closest("[data-close]")) return d.close();
     if (e.target.closest("[data-stop]")) { setEditing(false); d.close(); update(); }
     if (e.target.closest("[data-changepw]")) openEdit("set");
+    if (e.target.closest("[data-gh]")) openEdit("github");
+    if (e.target.closest("[data-back]")) openEdit();
+    if (e.target.closest("[data-ghoff]")) { disconnectGithub(); openEdit(); }
     if (e.target.closest("[data-dlconfig]")) {
       const blob = new Blob([JSON.stringify(CONFIG, null, 2)], { type: "application/json" });
       const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "config.json" });
@@ -225,6 +285,94 @@ function editEvents() {
     }
   });
   $("#editBtn").addEventListener("click", () => openEdit());
+}
+
+// ------------------------------------------------------------ saving straight to GitHub
+// The editor connects this browser once with a token limited to this one repository;
+// friend changes then commit data/profiles.json through GitHub's API.
+const GH_KEY = "bglist.github";
+let GH = (() => { try { return JSON.parse(localStorage.getItem(GH_KEY) || "null"); } catch { return null; } })();
+function guessRepo() {
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  if (!m) return "";
+  const seg = location.pathname.split("/").filter(Boolean)[0];
+  return `${m[1]}/${seg && !seg.includes(".") ? seg : m[1] + ".github.io"}`;
+}
+const ghFetch = (path, opts = {}, auth = GH) => fetch(`https://api.github.com/repos/${auth.repo}/${path}`, {
+  cache: "no-store", ...opts,
+  headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${auth.token}`, "X-GitHub-Api-Version": "2022-11-28", ...(opts.headers || {}) },
+});
+const b64 = str => { const b = new TextEncoder().encode(str); let s = ""; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode(...b.subarray(i, i + 32768)); return btoa(s); };
+const ghError = status => new Error(status === 401 ? t("ghErrToken") : status === 404 ? t("ghErrRepo") : status === 403 ? t("ghErrWrite") : t("ghErrNet"));
+async function ghRead(file) {
+  const r = await ghFetch(`contents/${file}`, { headers: { Accept: "application/vnd.github.raw+json" } });
+  if (r.status === 404) return null;
+  if (!r.ok) throw ghError(r.status);
+  return r.json();
+}
+async function ghWrite(file, text, message) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let cur;
+    try { cur = await ghFetch(`contents/${file}`); } catch { throw ghError(0); }
+    if (!cur.ok && cur.status !== 404) throw ghError(cur.status);
+    const sha = cur.ok ? (await cur.json()).sha : undefined;
+    const r = await ghFetch(`contents/${file}`, { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, content: b64(text), ...(sha ? { sha } : {}) }) }).catch(() => null);
+    if (r?.ok) return;
+    if (r && (r.status === 409 || r.status === 422)) continue;   // file changed meanwhile: fetch again and retry
+    throw ghError(r ? r.status : 0);
+  }
+  throw ghError(409);
+}
+
+let toastTimer;
+function toast(msg, kind = "ok", ms = 2600) {
+  const el = $("#toast");
+  // shown in the top layer so it also appears above an open window
+  try { if (el.matches(":popover-open")) el.hidePopover(); el.showPopover(); } catch { /* older browsers: shown normally */ }
+  el.textContent = msg; el.className = "toast " + kind;
+  requestAnimationFrame(() => el.classList.add("show"));
+  clearTimeout(toastTimer);
+  if (ms) toastTimer = setTimeout(() => { el.classList.remove("show"); setTimeout(() => { try { if (!el.classList.contains("show")) el.hidePopover(); } catch { /* ignore */ } }, 300); }, ms);
+}
+
+let ghTimer = null, ghBusy = false, ghAgain = false;
+function queueGithubSave(delay = 1200) {
+  if (!GH || !editing) return;
+  clearTimeout(ghTimer);
+  toast(t("ghSaving"), "busy", 0);
+  ghTimer = setTimeout(saveToGithub, delay);
+}
+async function saveToGithub() {
+  if (ghBusy) { ghAgain = true; return; }
+  ghBusy = true;
+  const snap = JSON.stringify(profiles);
+  try {
+    await ghWrite("data/profiles.json", JSON.stringify({ profiles }, null, 2) + "\n", "Update friends");
+    repoProfilesJson = snap;
+    if (JSON.stringify(profiles) === snap) { try { localStorage.removeItem(STORE); } catch { /* ignore */ } }
+    toast(t("ghSaved"), "ok");
+  } catch (e) { toast(e.message, "err", 6000); }
+  ghBusy = false;
+  if (ghAgain) { ghAgain = false; saveToGithub(); }
+}
+async function connectGithub(repo, token) {
+  const auth = { repo: repo.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\/+$/, ""), token: token.trim() };
+  let r;
+  try { r = await ghFetch("", {}, auth); } catch { throw ghError(0); }
+  if (!r.ok) throw ghError(r.status);
+  GH = auth;
+  try { localStorage.setItem(GH_KEY, JSON.stringify(GH)); } catch { /* ignore */ }
+  if (unsaved()) { await saveToGithub(); return; }   // this browser has edits that never reached the website: send them
+  // otherwise take the latest friends from GitHub, so an older copy here never overwrites newer changes
+  try {
+    const fresh = await ghRead("data/profiles.json");
+    if (fresh) { try { localStorage.removeItem(STORE); } catch { /* ignore */ } loadProfiles(fresh); }
+  } catch { /* keep what we have */ }
+}
+function disconnectGithub() {
+  GH = null;
+  try { localStorage.removeItem(GH_KEY); } catch { /* ignore */ }
 }
 
 // ------------------------------------------------------------ state
@@ -252,6 +400,40 @@ const img = (g, big = false) => {
   if (!src) return placeholder(g);
   return `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-ph="${g.id}">`;
 };
+// Remember each picture's shape, so cards are the right size before the picture loads
+// (no jumping) and the grid can glide reliably.
+const RATIO_KEY = "bglist.ratios";
+const ratios = (() => { try { return JSON.parse(localStorage.getItem(RATIO_KEY) || "{}"); } catch { return {}; } })();
+let ratioTimer;
+const rememberRatio = (src, r) => {
+  if (Math.abs((ratios[src] || 0) - r) < .005) return;
+  ratios[src] = Math.round(r * 1000) / 1000;
+  clearTimeout(ratioTimer);
+  ratioTimer = setTimeout(() => { try { localStorage.setItem(RATIO_KEY, JSON.stringify(ratios)); } catch { /* full */ } }, 800);
+};
+const pic = g => {
+  const src = g.thumb || g.image;
+  if (!src) return placeholder(g);
+  const r = ratios[src];
+  return `<span class="pic" style="aspect-ratio:${r || 1}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-ph="${g.id}"></span>`;
+};
+function prepPics(root) {
+  root.querySelectorAll(".pic:not(.loaded) img").forEach(im => {
+    const done = instant => {
+      const box = im.parentElement;
+      if (im.naturalWidth) {
+        const r = im.naturalWidth / im.naturalHeight;
+        rememberRatio(im.getAttribute("src"), r);
+        box.style.aspectRatio = r;
+      }
+      box.classList.add("loaded"); if (instant) box.classList.add("instant");
+      const card = im.closest(".card"); if (card?.isConnected) setSpan(card);
+    };
+    if (im.complete && im.naturalWidth) done(true);
+    else im.addEventListener("load", () => done(false), { once: true });
+    im.addEventListener("error", onImgError, { once: true });
+  });
+}
 const displayName = g => (lang === "zh" && g.zhName) ? g.zhName : g.name;
 // English mode shows no Chinese at all; 中文 mode shows the English name underneath
 const subName = g => (lang === "zh" && g.zhName) ? g.name : "";
@@ -296,6 +478,7 @@ function loadProfiles(repo) {
 function saveProfiles() {
   try { localStorage.setItem(STORE, JSON.stringify({ updated: Date.now(), profiles })); } catch { /* storage full or blocked */ }
   rebuildPlayed();
+  queueGithubSave();
 }
 const unsaved = () => JSON.stringify(profiles) !== repoProfilesJson;
 function rebuildPlayed() {
@@ -520,16 +703,14 @@ function activeFilterChips() {
 }
 
 // ------------------------------------------------------------ render: grid
-function card(g) {
+function cardParts(g) {
   const [lo, hi] = timeOf(g);
   const badges = profiles.filter(p => playedWith(p.id, g.id)).slice(0, 4).map(p => meeple(p.color, "#fff")).join("");
   const sub = subName(g);
-  return `<button type="button" class="card" data-id="${g.id}">
-    <div class="cover">${img(g)}</div>
-    ${g.type === "expansion" ? `<span class="tag-exp">${t("expansion")}</span>` : ""}
-    ${badges ? `<span class="played-badges">${badges}</span>` : ""}
-    <div class="meta">
-      <h2>${esc(displayName(g))}</h2>
+  return {
+    cover: pic(g),
+    over: `${g.type === "expansion" ? `<span class="tag-exp">${t("expansion")}</span>` : ""}${badges ? `<span class="played-badges">${badges}</span>` : ""}`,
+    meta: `<h2>${esc(displayName(g))}</h2>
       ${sub ? `<div class="sub">${esc(sub)}</div>` : ""}
       <div class="facts">
         ${S.sort === "rating" && g.rating ? `<span class="hl" title="${t("bggRating")}">★ ${g.rating.toFixed(1)}</span>` : ""}
@@ -537,19 +718,77 @@ function card(g) {
         <span title="${t("players")}">${icons.players}${range(g.minPlayers, g.maxPlayers)}</span>
         ${lo || hi ? `<span title="${t("time")}" class="${S.sort === "short" || S.sort === "long" ? "hl" : ""}">${icons.time}${range(lo, hi)}′</span>` : ""}
         ${g.weight ? `<span title="${t("weight")}: ${weightLabel(g.weight)} (${g.weight.toFixed(1)})">${pips(g.weight)}</span>` : ""}
-      </div>
-    </div>
-  </button>`;
+      </div>`,
+  };
 }
+const cardEls = new Map();   // game id -> its card, kept between renders
+function cardFor(g) {
+  let el = cardEls.get(g.id);
+  if (!el) {
+    el = document.createElement("button");
+    el.type = "button"; el.className = "card"; el.dataset.id = g.id;
+    el.innerHTML = `<div class="cover"></div><span class="over"></span><div class="meta"></div>`;
+    el._parts = {};
+    cardEls.set(g.id, el);
+  }
+  const parts = cardParts(g);
+  for (const k of ["cover", "over", "meta"]) {
+    if (el._parts[k] === parts[k]) continue;
+    el.querySelector("." + k).innerHTML = parts[k];
+    el._parts[k] = parts[k];
+    if (k === "cover") prepPics(el);
+  }
+  return el;
+}
+const setSpan = card => {
+  const gap = parseFloat(getComputedStyle(card).marginBottom) || 0;
+  // offsetHeight ignores animations in progress (a card fading in is briefly scaled down)
+  card.style.gridRowEnd = "span " + Math.ceil((card.offsetHeight + gap) / ROW);
+};
 function render() {
   const list = filtered();
   const grid = $("#grid"), empty = $("#empty");
   if (!DATA.games.length) {
-    grid.innerHTML = ""; empty.hidden = false;
+    grid.innerHTML = ""; cardEls.clear(); empty.hidden = false;
     empty.innerHTML = `<h2>${t("noData")}</h2><p>${t("noDataBody")}</p>`;
     return;
   }
-  grid.innerHTML = list.map(card).join("");
+  // remember where every visible card is, so the ones that stay can glide to their new spot
+  const animate = !reduceMotion.matches && grid.childElementCount > 0;
+  const before = new Map();
+  if (animate) for (const el of grid.querySelectorAll(".card:not(.ghost)")) before.set(el, el.getBoundingClientRect());
+  grid.querySelectorAll(".ghost").forEach(x => x.remove());
+  const els = list.map(cardFor), keep = new Set(els);
+  const gone = [...grid.querySelectorAll(".card")].filter(el => !keep.has(el));
+  gone.forEach(el => el.remove());
+  els.forEach((el, i) => { if (grid.children[i] !== el) grid.insertBefore(el, grid.children[i] || null); });
+  els.forEach(el => { if (!before.has(el)) setSpan(el); masonry.observe(el); });
+  // re-measure once everything has settled, in case a card changed size while it was hidden
+  requestAnimationFrame(() => requestAnimationFrame(() => els.forEach(el => el.isConnected && setSpan(el))));
+  if (animate) {
+    const vis = r => r.bottom > -100 && r.top < innerHeight + 100;
+    for (const el of els) {
+      const a = before.get(el), b = el.getBoundingClientRect();
+      if (a) {
+        const dx = a.left - b.left, dy = a.top - b.top;
+        if ((dx || dy) && (vis(a) || vis(b)))
+          el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 480, easing: "cubic-bezier(.2,.8,.2,1)" });
+      } else if (vis(b)) {
+        el.animate([{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "none" }], { duration: 340, delay: 140, easing: "ease-out", fill: "backwards" });
+      }
+    }
+    // cards that leave fade out where they were
+    const box = grid.getBoundingClientRect();
+    for (const el of gone) {
+      const a = before.get(el); if (!a || !vis(a)) continue;
+      const ghost = el.cloneNode(true);
+      ghost.classList.add("ghost"); ghost.removeAttribute("data-id");
+      Object.assign(ghost.style, { left: a.left - box.left + "px", top: a.top - box.top + "px", width: a.width + "px", height: a.height + "px" });
+      grid.append(ghost);
+      ghost.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.9)" }], { duration: 260, easing: "ease-in", fill: "forwards" })
+        .finished.then(() => ghost.remove());
+    }
+  }
   empty.hidden = list.length > 0;
   if (!list.length) empty.innerHTML = `<h2>${t("noneTitle")}</h2><p>${t("noneBody")}</p><button class="btn" type="button" data-clear>${t("clear")}</button>`;
   const chips = activeFilterChips();
@@ -558,23 +797,15 @@ function render() {
     (chips.length > 1 ? `<button type="button" class="linkish" data-clear>${t("clear")}</button>` : "");
   const nf = chips.length - (S.q ? 1 : 0);
   $("#filterBadge").textContent = nf || "";
-  grid.querySelectorAll("img[data-ph]").forEach(i => i.addEventListener("error", onImgError, { once: true }));
-  grid.querySelectorAll(".card").forEach(c => masonry.observe(c));
-  $("#pickBtn").disabled = !list.length;
+  $("#pickBtn").disabled = $("#pickBtn2").disabled = !list.length;
 }
 // Masonry: every card spans as many 4px grid rows as its own height needs,
 // so tall boxes, wide boxes and long names each get a card that fits them.
 const ROW = 4;
-const masonry = new ResizeObserver(entries => {
-  for (const e of entries) {
-    const card = e.target;
-    const gap = parseFloat(getComputedStyle(card).marginBottom) || 0;
-    card.style.gridRowEnd = "span " + Math.ceil((card.getBoundingClientRect().height + gap) / ROW);
-  }
-});
+const masonry = new ResizeObserver(entries => { for (const e of entries) if (e.target.isConnected) setSpan(e.target); });
 function onImgError(e) {
   const g = byId.get(+e.target.dataset.ph);
-  if (g) e.target.outerHTML = placeholder(g);
+  if (g) (e.target.closest(".pic") || e.target).outerHTML = placeholder(g);
 }
 function update(full = true) {
   writeHash();
@@ -713,14 +944,55 @@ function closeGame() {
     body.getAnimations().forEach(a => a.cancel());
   });
 }
-function pickRandom() {
+// ------------------------------------------------------------ rolling Random
+// Box covers spin past like a slot machine, slow down and land on the pick;
+// the winning cover then flies into the game window.
+let rolling = null;
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+function pickRandom(exclude = 0) {
   const list = filtered();
-  if (!list.length) return;
-  const cur = +($("#gameBody").dataset.id || 0);
-  const pool = list.length > 1 ? list.filter(g => g.id !== cur) : list;
-  const pick = pool[Math.floor(Math.random() * pool.length)].id;
-  // if the chosen game's card is on screen, its art flies out of it
-  openGame(pick, true, document.querySelector(`#grid .card[data-id="${pick}"]`));
+  if (!list.length || rolling) return;
+  const pool = list.length > 1 ? list.filter(g => g.id !== exclude) : list;
+  const pick = rnd(pool);
+  if (reduceMotion.matches || list.length < 2) {
+    openGame(pick.id, true, document.querySelector(`#grid .card[data-id="${pick.id}"]`));
+    return;
+  }
+  const LAND = 30, N = LAND + 5;
+  const items = [];
+  for (let i = 0; i < N; i++) {
+    if (i === LAND) { items.push(pick); continue; }
+    let g = rnd(list), tries = 0;
+    while ((g.id === items[i - 1]?.id || (Math.abs(i - LAND) <= 1 && g.id === pick.id)) && tries++ < 8) g = rnd(list);
+    items.push(g);
+  }
+  const d = $("#rollDialog"), reel = $("#reel"), label = $("#rollLabel");
+  reel.innerHTML = items.map((g, i) => `<div class="reel-item${i === LAND ? " land" : ""}" data-gid="${g.id}"><div class="cover">${
+    (g.thumb || g.image) ? `<img src="${esc(g.thumb || g.image)}" alt="" decoding="async" referrerpolicy="no-referrer">` : placeholder(g)}</div></div>`).join("");
+  reel.querySelectorAll("img").forEach(im => im.addEventListener("error", () => {
+    const g = byId.get(+im.closest(".reel-item").dataset.gid); if (g) im.outerHTML = placeholder(g);
+  }, { once: true }));
+  label.textContent = t("rolling"); label.classList.remove("won");
+  d.classList.remove("done");
+  d.showModal();
+
+  const first = reel.children[0], step = reel.children[1].offsetLeft - first.offsetLeft;
+  const center = reel.parentElement.clientWidth / 2 - first.offsetWidth / 2;
+  const from = center, to = center - LAND * step;
+  const spin = reel.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }],
+    { duration: 3000, easing: "cubic-bezier(.08,.72,.12,1)", fill: "forwards" });
+  reel.animate([{ filter: "blur(3px)" }, { filter: "blur(2px)", offset: .35 }, { filter: "blur(0)" }], { duration: 2000, easing: "ease-in" });
+  rolling = { spin };
+  spin.finished.then(() => {
+    const won = reel.children[LAND];
+    won.classList.add("won"); d.classList.add("done");
+    label.textContent = displayName(pick); label.classList.add("won");
+    return new Promise(r => setTimeout(r, 650)).then(() => {
+      if (!d.open) return;
+      openGame(pick.id, true, won);   // the winning cover flies from the reel into the window
+      d.close();
+    });
+  }).catch(() => {}).finally(() => { rolling = null; });
 }
 
 // ------------------------------------------------------------ profiles dialog
@@ -728,7 +1000,7 @@ function openProfiles() {
   const names = allPlayerNames();
   let h = `<button class="d-close" type="button" aria-label="Close" data-close>×</button><div class="p-body">
     <h2>${t("pTitle")}</h2><p>${t("pIntro")}</p>`;
-  if (unsaved()) h += `<div class="notice">${t("pUnsaved")}</div>`;
+  h += GH ? `<div class="gh-status on"><span>● ${t("pSavedGh")}</span></div>` : ghStatus();
   if (!profiles.length) h += `<p>${t("pNone")}</p>`;
   for (const p of profiles) {
     const n = playedCache.get(p.id)?.size || 0;
@@ -745,8 +1017,8 @@ function openProfiles() {
   }
   h += `<div class="p-foot">
       <button class="btn" type="button" data-addprof>+ ${t("pAdd")}</button>
-      <button class="btn light" type="button" data-export>${t("pExport")}</button>
-      <label class="btn light" style="cursor:pointer">${t("pImport")}<input type="file" accept=".json,application/json" hidden data-import></label>
+      ${GH ? "" : `<button class="btn light" type="button" data-export>${t("pExport")}</button>
+      <label class="btn light" style="cursor:pointer">${t("pImport")}<input type="file" accept=".json,application/json" hidden data-import></label>`}
       <span style="flex:1"></span><button class="btn" type="button" data-close>${t("pDone")}</button>
     </div></div>`;
   $("#profileBody").innerHTML = h;
@@ -807,13 +1079,42 @@ function profileEvents() {
 function toggle(set, v) { set.has(v) ? set.delete(v) : set.add(v); }
 function bind() {
   let qTimer;
-  $("#q").addEventListener("input", e => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = e.target.value.trim(); update(); }, 120); });
+  const onSearch = e => {
+    const other = e.target.id === "q" ? $("#q2") : $("#q");
+    other.value = e.target.value;
+    clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = e.target.value.trim(); update(); requestAnimationFrame(checkBar); }, 120);
+  };
+  $("#q").addEventListener("input", onSearch);
+  $("#q2").addEventListener("input", onSearch);
+  $("#pickBtn2").addEventListener("click", () => pickRandom());
+  $("#toTop").addEventListener("click", () => scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" }));
+  // the slim bar appears once the big header is almost out of view
+  const bar = $("#minibar"), head = $(".top");
+  let barOn = false, ticking = false;
+  const checkBar = () => {
+    ticking = false;
+    const headerGone = head.getBoundingClientRect().bottom < 8, q2 = $("#q2");
+    // typing in the slim bar but the page has scrolled back up: carry on in the main search box
+    if (!headerGone && document.activeElement === q2) { const q = $("#q"); q.focus({ preventScroll: true }); q.setSelectionRange(q.value.length, q.value.length); }
+    const on = headerGone;
+    if (on === barOn) return;
+    barOn = on;
+    bar.classList.toggle("show", on); bar.inert = !on;
+    document.body.classList.toggle("scrolled", on);
+  };
+  addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(checkBar); } }, { passive: true });
+  addEventListener("resize", checkBar);
+  $("#q2").addEventListener("blur", () => setTimeout(checkBar, 0));
   $("#sort").addEventListener("change", e => { S.sort = e.target.value; update(false); });
   $("#langBtn").addEventListener("click", () => {
     lang = lang === "zh" ? "en" : "zh"; localStorage.setItem("bglist.lang", lang);
     renderStatic(); update();
   });
-  $("#pickBtn").addEventListener("click", () => { $("#gameBody").dataset.id = ""; pickRandom(); });
+  $("#pickBtn").addEventListener("click", () => pickRandom());
+  // tapping or pressing Esc during the roll skips straight to the result
+  const rd = $("#rollDialog");
+  rd.addEventListener("cancel", e => { e.preventDefault(); rolling?.spin.finish(); });
+  rd.addEventListener("click", () => rolling?.spin.finish());
   $("#openFilters").addEventListener("click", () => $("#filters").classList.add("open"));
   $("#closeFilters").addEventListener("click", () => $("#filters").classList.remove("open"));
   document.addEventListener("pointerdown", e => {
@@ -853,10 +1154,10 @@ function bind() {
     const b = e.target.closest("button"); if (!b) return;
     if (b.hasAttribute("data-clear")) {
       Object.assign(S, { q: "", players: new Set(), pmode: "can", time: new Set(), weight: new Set(), ld: new Set(), cats: new Set(), mechs: new Set() });
-      $("#q").value = ""; update();
+      $("#q").value = $("#q2").value = ""; update();
     } else if (b.dataset.rm) {
       const f = b.dataset.rm, v = b.dataset.v;
-      if (f === "q") { S.q = ""; $("#q").value = ""; }
+      if (f === "q") { S.q = ""; $("#q").value = $("#q2").value = ""; }
       else if (f === "players") S.players.delete(+v);
       else if (f === "ld") S.ld.delete(+v);
       else ({ time: S.time, weight: S.weight, cats: S.cats, mechs: S.mechs })[f].delete(v);
@@ -871,7 +1172,7 @@ function bind() {
     if (e.target === gd) return closeGame();
     const b = e.target.closest("button"); if (!b) return;
     if (b.hasAttribute("data-close")) closeGame();
-    else if (b.hasAttribute("data-again")) pickRandom();
+    else if (b.hasAttribute("data-again")) { const cur = +$("#gameBody").dataset.id; gd.close(); pickRandom(cur); }
     else if (b.dataset.open) openGame(+b.dataset.open);
     else if (b.hasAttribute("data-desc")) {
       const d = $("#desc"); d.classList.toggle("clamp"); b.textContent = d.classList.contains("clamp") ? t("more") : t("less");
@@ -895,10 +1196,13 @@ function bind() {
   });
 
   const pd = $("#profileDialog");
-  pd.addEventListener("click", e => { if (e.target === pd || e.target.closest("[data-close]")) pd.close(); });
+  pd.addEventListener("click", e => {
+    if (e.target === pd || e.target.closest("[data-close]")) pd.close();
+    if (e.target.closest("[data-gh]")) { pd.close(); openEdit("github"); }
+  });
   profileEvents();
 
-  window.addEventListener("hashchange", () => { readHash(); openActive(); $("#q").value = S.q; renderStatic(); update(); });
+  window.addEventListener("hashchange", () => { readHash(); openActive(); $("#q").value = $("#q2").value = S.q; renderStatic(); update(); });
 }
 
 // ------------------------------------------------------------ boot
@@ -928,10 +1232,13 @@ async function boot() {
     g.groups = { cats: new Set(GROUPS.cats.filter(x => x.test(g)).map(x => x.id)), mechs: new Set(GROUPS.mechs.filter(x => x.test(g)).map(x => x.id)) };
   }
   byId = new Map(DATA.games.map(g => [g.id, g]));
-  loadProfiles(prof);
+  let fresh = prof;
+  if (editing && GH) { try { fresh = await ghRead("data/profiles.json") || prof; } catch { /* fall back to the published copy */ } }
+  loadProfiles(fresh);
+  if (editing && GH && unsaved()) queueGithubSave(400);
   if (S.profile && !profiles.some(p => p.id === S.profile)) S.profile = "";
   S.pfilter = !S.profile ? "all" : S.pfilter === "unplayed" ? "unplayed" : "played";
-  $("#q").value = S.q;
+  $("#q").value = $("#q2").value = S.q;
   openActive();
   renderStatic(); bind(); editEvents(); update();
 }

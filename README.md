@@ -56,7 +56,7 @@ Click "Edit friends" on the site to add people. For each friend:
 - **Names in BGG play logs** links them to your logged plays. The editor lists every name that appears in your plays, so you can tap to add. If a friend appears under several spellings, add them all.
 - Inside any game, tick "Played" next to a friend to add games you didn't log on BGG.
 
-Friend changes are saved in the browser you made them in. To make them appear on every device (and for anyone you share the link with), press "Download profiles.json" in the friends editor, then upload that file to the `data` folder of your repository, replacing the old one.
+Friend changes save straight to your website once you connect GitHub: unlock edit mode, click Edit in the footer, then Connect GitHub, and follow the three steps to create a token limited to this repository (Contents: Read and write). The token is kept only in that browser. Without a connection, changes stay in the browser you made them in, and "Download profiles.json" still works as before.
 
 ## Before your token arrives
 
