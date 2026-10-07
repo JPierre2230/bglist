@@ -555,3 +555,26 @@ footer { text-align: center; padding: 6px 0 30px; }
   .fpanel .edit-tools { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
 }
 @media (max-width: 900px) { .fbar { display: none !important; } }
+
+/* ---------- cards: 3D tilt toward the mouse, with a light sheen ---------- */
+.card::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, .34), rgba(255, 255, 255, .08) 38%, transparent 65%);
+  transition: opacity .35s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card { transition: transform .5s cubic-bezier(.2, .8, .2, 1), box-shadow .3s ease; }
+  .card.tilting { transition: transform .12s ease-out, box-shadow .3s ease; }
+  .card:hover {
+    transform: perspective(900px) translateY(-4px) scale(1.025)
+      rotateX(calc(var(--ty, 0) * -9deg)) rotateY(calc(var(--tx, 0) * 9deg));
+    box-shadow: calc(var(--tx, 0) * -10px) calc(16px + var(--ty, 0) * -6px) 32px rgba(0, 0, 0, .45);
+    z-index: 2;
+  }
+  .card:hover::after { opacity: 1; }
+}
+/* phones and tablets: a gentle press instead */
+@media (hover: none) {
+  .card { transition: transform .18s ease, box-shadow .18s ease; -webkit-tap-highlight-color: transparent; }
+  .card:active { transform: scale(.97); }
+}
