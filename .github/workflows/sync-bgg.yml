@@ -23,6 +23,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Pillow (for each box's main colour)
+        run: pip install pillow
+
       - name: Fetch collection from BGG
         env:
           BGG_USERNAME: ${{ vars.BGG_USERNAME }}
@@ -36,12 +39,13 @@ jobs:
 
       - name: Commit updated data
         run: |
-          if git diff --quiet -- data/games.json; then
+          if git diff --quiet -- data/games.json && git diff --quiet -- data/colors.json && [ -z "$(git ls-files --others -- data/colors.json)" ]; then
             echo "Collection unchanged."
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add data/games.json
+          [ -f data/colors.json ] && git add data/colors.json
           git commit -m "Sync BGG collection"
           git push

@@ -6,7 +6,8 @@ Usage
   BGG_TOKEN=xxxx python scripts/sync_bgg.py --user YOUR_BGG_NAME
   python scripts/sync_bgg.py --csv collection.csv        # no token yet? use BGG's CSV export
 
-Only the Python standard library is used, so it runs anywhere (including GitHub Actions).
+Only the Python standard library is needed. If Pillow is installed, each box's main colour is
+also worked out (cached in data/colors.json) to tint the game window on the website.
 
 BGG rules this script follows (https://boardgamegeek.com/using_the_xml_api):
   * every XML API request carries "Authorization: Bearer <token>"
@@ -346,6 +347,72 @@ def link_expansions_by_name(games):
 
 # ---------------------------------------------------------------- main
 
+def vivid_color(raw):
+    """The box art's most prominent colourful hue, adjusted to glow nicely on a dark page."""
+    import colorsys
+    import io
+    from PIL import Image
+    im = Image.open(io.BytesIO(raw)).convert("RGB")
+    im.thumbnail((48, 48))
+    bins = {}
+    for r, g, b in im.getdata():
+        h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        if l < .08 or l > .94:          # near black or white says nothing about the box's colour
+            continue
+        w = .15 + s * (1 - abs(l - .5))  # favour saturated mid-tones over greys
+        k = int(h * 24) % 24
+        acc = bins.setdefault(k, [0, 0, 0, 0])
+        acc[0] += w; acc[1] += r * w; acc[2] += g * w; acc[3] += b * w
+    if not bins:
+        return None
+    w, r, g, b = max(bins.values(), key=lambda a: a[0])
+    h, l, s = colorsys.rgb_to_hls(r / w / 255, g / w / 255, b / w / 255)
+    l = min(max(l, .42), .62)
+    s = min(max(s, .5), .85) if s > .2 else s
+    return "#%02x%02x%02x" % tuple(round(c * 255) for c in colorsys.hls_to_rgb(h, l, s))
+
+
+def add_colors(games, data_dir):
+    """Set each game's "color" from its picture. Results are cached by picture address."""
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        log("Pillow isn't installed; skipping box colours.")
+        return
+    cache_path = os.path.join(data_dir, "colors.json")
+    try:
+        with open(cache_path, encoding="utf-8") as fh:
+            cache = json.load(fh)
+    except (OSError, ValueError):
+        cache = {}
+    try:
+        with open(os.path.join(data_dir, "images.json"), encoding="utf-8") as fh:
+            custom = json.load(fh).get("images", {})
+    except (OSError, ValueError):
+        custom = {}
+    new = 0
+    for g in games:
+        url = custom.get(str(g["id"])) or g.get("thumb") or g.get("image")
+        if not url:
+            continue
+        if url not in cache:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": UA})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    cache[url] = vivid_color(r.read())
+                new += 1
+            except Exception as e:  # a missing picture just means no tint for that game
+                log(f"  couldn't read the picture for {g['name']}: {e}")
+                continue
+        if cache[url]:
+            g["color"] = cache[url]
+    used = {custom.get(str(g["id"])) or g.get("thumb") or g.get("image") for g in games}
+    cache = {u: c for u, c in sorted(cache.items()) if u in used}
+    with open(cache_path, "w", encoding="utf-8") as fh:
+        json.dump(cache, fh, indent=1)
+    log(f"Box colours: {new} new, {len(cache)} in total.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--user", default=os.environ.get("BGG_USERNAME"), help="BGG username")
@@ -378,6 +445,7 @@ def main():
         source = "api"
 
     games.sort(key=lambda g: g["name"].lower())
+    add_colors(games, os.path.dirname(os.path.abspath(a.out)))
     data = {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "username": a.user,

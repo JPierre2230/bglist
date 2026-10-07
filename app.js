@@ -898,6 +898,10 @@ function openGame(id, fromPick = false, fromCard = null) {
     }).join("") + `</div>`;
   }
 
+  // tint the window with the main colour of the box art (worked out nightly by the BGG sync)
+  const gd = $("#gameDialog");
+  gd.classList.toggle("tinted", !!g.color);
+  if (g.color) gd.style.setProperty("--glow", g.color); else gd.style.removeProperty("--glow");
   $("#gameBody").innerHTML = `<button class="d-close" type="button" aria-label="Close" data-close>×</button>
   <div class="d-game">
     <div class="cover">${img(g, true)}</div>
@@ -1225,9 +1229,9 @@ function bind() {
 
   $("#grid").addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openGame(+c.dataset.id, false, c); });
 
-  // 3D tilt: the card leans toward the mouse and a soft light follows it
+  // 3D tilt: the card leans toward the mouse
   let tiltCard = null, tiltFrame = 0, tiltAt = null;
-  const untilt = c => { c.classList.remove("tilting"); for (const k of ["--tx", "--ty", "--mx", "--my"]) c.style.removeProperty(k); };
+  const untilt = c => { c.classList.remove("tilting"); for (const k of ["--tx", "--ty"]) c.style.removeProperty(k); };
   $("#grid").addEventListener("pointermove", e => {
     if (e.pointerType !== "mouse" || reduceMotion.matches) return;
     const c = e.target.closest(".card:not(.ghost)");
@@ -1242,8 +1246,6 @@ function bind() {
       tiltCard.classList.add("tilting");
       tiltCard.style.setProperty("--tx", (x * 2 - 1).toFixed(3));
       tiltCard.style.setProperty("--ty", (y * 2 - 1).toFixed(3));
-      tiltCard.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
-      tiltCard.style.setProperty("--my", (y * 100).toFixed(1) + "%");
     });
   });
   $("#grid").addEventListener("pointerout", e => {
