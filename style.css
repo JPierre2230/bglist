@@ -556,12 +556,7 @@ footer { text-align: center; padding: 6px 0 30px; }
 }
 @media (max-width: 900px) { .fbar { display: none !important; } }
 
-/* ---------- cards: 3D tilt toward the mouse, with a light sheen ---------- */
-.card::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
-  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, .34), rgba(255, 255, 255, .08) 38%, transparent 65%);
-  transition: opacity .35s ease;
-}
+/* ---------- cards: 3D tilt toward the mouse ---------- */
 @media (hover: hover) and (pointer: fine) {
   .card { transition: transform .5s cubic-bezier(.2, .8, .2, 1), box-shadow .3s ease; }
   .card.tilting { transition: transform .12s ease-out, box-shadow .3s ease; }
@@ -571,10 +566,17 @@ footer { text-align: center; padding: 6px 0 30px; }
     box-shadow: calc(var(--tx, 0) * -10px) calc(16px + var(--ty, 0) * -6px) 32px rgba(0, 0, 0, .45);
     z-index: 2;
   }
-  .card:hover::after { opacity: 1; }
 }
 /* phones and tablets: a gentle press instead */
 @media (hover: none) {
   .card { transition: transform .18s ease, box-shadow .18s ease; -webkit-tap-highlight-color: transparent; }
   .card:active { transform: scale(.97); }
 }
+
+/* ---------- game window: tinted by the main colour of the box art ---------- */
+#gameDialog.tinted::backdrop { background: radial-gradient(ellipse 70% 60% at 50% 45%, color-mix(in srgb, var(--glow) 32%, rgba(18, 12, 40, .6)), rgba(14, 10, 30, .8) 75%); backdrop-filter: blur(3px); }
+#gameDialog.tinted #gameBody { box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow) 40%, transparent), 0 0 110px -6px color-mix(in srgb, var(--glow) 65%, transparent), 0 24px 60px rgba(0, 0, 0, .45); }
+#gameDialog.tinted .d-game .cover { background: radial-gradient(130% 75% at 50% 32%, color-mix(in srgb, var(--glow) 50%, var(--tile-sunk)), color-mix(in srgb, var(--glow) 10%, var(--tile-sunk)) 80%); }
+#gameDialog.tinted .d-game .cover img { box-shadow: 0 16px 40px color-mix(in srgb, var(--glow) 45%, #000); }
+#gameDialog.tinted .stat { background: color-mix(in srgb, var(--glow) 12%, var(--tile-sunk)); }
+#gameDialog.tinted .d-main h2 { text-shadow: 0 0 24px color-mix(in srgb, var(--glow) 55%, transparent); }
