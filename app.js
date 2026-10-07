@@ -1225,6 +1225,31 @@ function bind() {
 
   $("#grid").addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openGame(+c.dataset.id, false, c); });
 
+  // 3D tilt: the card leans toward the mouse and a soft light follows it
+  let tiltCard = null, tiltFrame = 0, tiltAt = null;
+  const untilt = c => { c.classList.remove("tilting"); for (const k of ["--tx", "--ty", "--mx", "--my"]) c.style.removeProperty(k); };
+  $("#grid").addEventListener("pointermove", e => {
+    if (e.pointerType !== "mouse" || reduceMotion.matches) return;
+    const c = e.target.closest(".card:not(.ghost)");
+    if (c !== tiltCard) { if (tiltCard) untilt(tiltCard); tiltCard = c; }
+    if (!c) return;
+    tiltAt = [e.clientX, e.clientY];
+    tiltFrame ||= requestAnimationFrame(() => {
+      tiltFrame = 0;
+      if (!tiltCard || !tiltAt) return;
+      const r = tiltCard.getBoundingClientRect();
+      const x = Math.min(1, Math.max(0, (tiltAt[0] - r.left) / r.width)), y = Math.min(1, Math.max(0, (tiltAt[1] - r.top) / r.height));
+      tiltCard.classList.add("tilting");
+      tiltCard.style.setProperty("--tx", (x * 2 - 1).toFixed(3));
+      tiltCard.style.setProperty("--ty", (y * 2 - 1).toFixed(3));
+      tiltCard.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+      tiltCard.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+    });
+  });
+  $("#grid").addEventListener("pointerout", e => {
+    if (tiltCard && !tiltCard.contains(e.relatedTarget)) { untilt(tiltCard); tiltCard = null; }
+  });
+
   const gd = $("#gameDialog");
   gd.addEventListener("click", e => {
     if (e.target === gd) return closeGame();
